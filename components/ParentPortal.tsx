@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Bell, Calendar, GraduationCap, MessageCircle, FileText, CheckCircle, Bot, Sparkles, LogOut, LayoutDashboard, BrainCircuit } from 'lucide-react';
+import { Bell, Calendar, GraduationCap, MessageCircle, FileText, CheckCircle, Bot, Sparkles, LogOut, LayoutDashboard, BrainCircuit, Shield } from 'lucide-react';
 import { ANNOUNCEMENTS, PLANNING_DATA } from '../constants';
 import { Student } from '../types';
 import { QueZadinChat } from './QueZadinChat';
@@ -40,17 +40,17 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans max-w-md mx-auto shadow-2xl border-x border-slate-200 relative">
+    <div className="h-full bg-slate-50 flex flex-col font-sans max-w-md mx-auto relative overflow-hidden">
       {/* Header Institucional */}
-      <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+      <header className="bg-slate-900 text-white shadow-lg shrink-0 z-50">
         <div className="px-4 py-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center border border-blue-500 shadow-sm">
-               <span className="font-serif font-bold text-white text-xs tracking-tighter">LQT</span>
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center border border-indigo-400 shadow-sm">
+               <Shield size={20} className="text-white" />
             </div>
             <div>
-                <h1 className="font-black text-sm uppercase tracking-tight">Escuela Las Quezadas</h1>
-                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">MatemApp 360°</p>
+                <h1 className="font-black text-xs uppercase tracking-tight">Escuela Las Quezadas</h1>
+                <p className="text-[8px] text-blue-400 font-bold uppercase tracking-widest">MatemApp 360°</p>
             </div>
           </div>
           <button onClick={onLogout} className="p-2 text-slate-400 hover:text-white transition-colors">
@@ -60,7 +60,7 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto pb-32 bg-slate-50">
+      <div className="flex-1 overflow-y-auto pb-24 bg-slate-50 custom-scrollbar">
         {activeTab === 'inicio' && (
           <div className="p-4 space-y-6 animate-fade-in">
             {/* Student Info Card */}
@@ -181,8 +181,8 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
         )}
       </div>
 
-      {/* Tab Navigation Footer */}
-      <nav className="fixed bottom-0 w-full max-w-md bg-white border-t border-slate-100 p-4 flex justify-around items-center shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
+      {/* Tab Navigation Footer - Fixed to bottom of CONTAINER, not screen */}
+      <nav className="absolute bottom-0 w-full bg-white border-t border-slate-100 p-4 flex justify-around items-center shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
         <button 
             onClick={() => setActiveTab('inicio')}
             className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'inicio' ? 'text-indigo-600' : 'text-slate-400'}`}

@@ -1,186 +1,138 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { Student, PlanningUnit } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
-
 /**
- * Utiliza IA para extraer datos estructurados de un texto pegado (nómina)
+ * getAiTutorResponseStream: OPTIMIZADO PARA VELOCIDAD TURBO
+ * - Utiliza gemini-3-flash-preview para una latencia mínima.
+ * - Temperatura 0 para respuestas deterministas y rápidas.
+ * - Instrucciones de sistema minimalistas para reducir el tiempo de procesamiento de prompt.
+ * - Deshabilita el presupuesto de pensamiento para prioridad absoluta en velocidad.
  */
-export const parseStudentRoster = async (rawText: string): Promise<Partial<Student>[]> => {
-  if (!apiKey) return [];
+export async function* getAiTutorResponseStream(course: string, question: string) {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-  const prompt = `
-    Analiza la siguiente lista de alumnos y extrae la información en formato JSON.
-    LISTA: "${rawText}"
-    
-    Debes identificar: 
-    1. Nombre completo
-    2. RUT (formato 12.345.678-9)
-    3. Curso (ej: "5° Básico")
-    
-    Si falta el curso, asume "5° Básico" por defecto.
-    Retorna un array JSON de objetos con las llaves: name, rut, grade.
-  `;
+  // Instrucción minimalista para reducir el procesamiento inicial del prompt
+  const systemInstruction = `Eres QueZadin, tutor de mates para ${course}. Breve, motivador, Markdown. Usa Google Search si es útil.`;
 
   try {
-    const response = await ai.models.generateContent({
+    const result = await ai.models.generateContentStream({
       model: 'gemini-3-flash-preview',
-      contents: prompt,
+      contents: question,
       config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              rut: { type: Type.STRING },
-              grade: { type: Type.STRING }
-            },
-            required: ["name", "rut", "grade"]
-          }
-        }
+        systemInstruction: systemInstruction,
+        tools: [{ googleSearch: {} }],
+        temperature: 0,
+        maxOutputTokens: 450,
+        thinkingConfig: { thinkingBudget: 0 }
       }
     });
-    return JSON.parse(response.text || "[]");
+
+    for await (const chunk of result) {
+      if (chunk.text) {
+        // Obtenemos fuentes de grounding si están presentes para citar en la UI
+        const sources = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        yield { text: chunk.text, sources: sources };
+      }
+    }
   } catch (error) {
-    console.error("Error parsing roster:", error);
-    return [];
+    console.error("Latency-optimized streaming error:", error);
+    yield { text: "⚠️ Error rápido de conexión. Reintenta.", sources: [] };
+  }
+}
+
+/**
+ * getAiTutorSpeech: Genera audio para la respuesta del tutor.
+ */
+export const getAiTutorSpeech = async (text: string): Promise<string | undefined> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text: `Di esto con entusiasmo juvenil: ${text.slice(0, 180)}` }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: 'Puck' },
+          },
+        },
+      },
+    });
+
+    return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+  } catch (error) {
+    console.error("TTS Error", error);
+    return undefined;
   }
 };
 
-export const getTeacherCopilotReply = async (
-  conversationHistory: string[], 
-  student: Student, 
-  currentUnit?: PlanningUnit
-): Promise<string> => {
-  if (!apiKey) return "Servicio de asistencia no disponible.";
+/**
+ * getSuggestedReplies: Obtiene sugerencias de respuesta en paralelo con temperatura 0.
+ */
+export const getSuggestedReplies = async (course: string, lastUserMessage: string): Promise<string[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Contexto: ${course}. Mensaje: "${lastUserMessage}". JSON array de 3 sugerencias cortas para el alumno. Solo JSON.`,
+      config: { 
+        responseMimeType: "application/json",
+        temperature: 0,
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    });
+    const parsed = JSON.parse(response.text || "[]");
+    return Array.isArray(parsed) ? parsed.slice(0, 3) : ["¿Un ejemplo?", "Listo", "No entiendo"];
+  } catch (error) { 
+    return ["¿Un ejemplo?", "Listo", "No entiendo"]; 
+  }
+};
 
-  const prompt = `
-    Eres "QueZadin Copilot", el asistente de IA del Profesor Yonathan Herrera en la Escuela Las Quezadas.
-    CONTEXTO DEL ALUMNO: ${student.name} (${student.grade}).
-    HISTORIAL: ${conversationHistory.join('\n')}
-    TAREA: Redacta una respuesta profesional para el apoderado. Firma como Yonathan Herrera.
-  `;
-
+export const summarizeStudentPerformance = async (studentName: string, data: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `Resume desempeño de ${studentName}: ${data}. Muy breve.`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
+      config: { temperature: 0, thinkingConfig: { thinkingBudget: 0 } }
+    });
+    return response.text || "Resumen no disponible.";
+  } catch (error) {
+    return "Error de resumen.";
+  }
+};
+
+export const getTeacherCopilotReply = async (history: string[], student: Student, unit?: PlanningUnit): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  let context = `Eres Prof. Yonathan para ${student.name}. `;
+  if (unit) context += `Unidad: ${unit.title}. `;
+  context += `Chat:\n${history.join('\n')}`;
+  
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: context,
+      config: { temperature: 0, thinkingConfig: { thinkingBudget: 0 } }
     });
     return response.text || "";
   } catch (error) {
-    return "Error al generar borrador.";
+    return "Error copilot.";
   }
 };
 
-export const getAiTutorResponse = async (course: string, context: string, question: string): Promise<string> => {
-  if (!apiKey) return "El sistema de tutoría no está disponible.";
-  
-  const isFifthGrade = course.includes('5');
-  const curriculumLink = "https://www.curriculumnacional.cl/curriculum/1o-6o-basico/matematica/5-basico?priorizacion=0";
-
-  const systemInstruction = `
-    Eres "QueZadin", el tutor virtual experto en Matemáticas de la Escuela Las Quezadas. 
-    Tu misión es ayudar a los alumnos a estudiar y preparar sus evaluaciones de forma didáctica.
-    CURSO ACTUAL: ${course}.
-    SUPERVISOR: Profesor Yonathan Herrera.
-    
-    REGLAS DE COMPORTAMIENTO:
-    1. Ajusta tu complejidad al nivel ${course} de la educación chilena.
-    2. Si el alumno quiere "preparar una evaluación", genera 3 ejercicios prácticos de menor a mayor dificultad relacionados al tema.
-    3. INTEGRACIÓN KHAN ACADEMY: Es MANDATORIO sugerir una actividad o lección de Khan Academy cuando el alumno necesite practicar o profundizar.
-       - URL BASE: Debes usar SIEMPRE es.khanacademy.org (versión en español).
-       - RELEVANCIA TEMÁTICA: El enlace proporcionado debe ser específico al tema tratado. 
-         * Ejemplos de slugs: /math/aritmetica, /math/algebra, /math/geometry, /math/basic-geo, /math/probability.
-         * Si el tema es Fracciones en 5° Básico, busca el enlace más cercano como "es.khanacademy.org/math/aritmetica/fractions".
-       - BÚSQUEDA ESPECÍFICA: Si no conoces la URL exacta de la lección, proporciona SIEMPRE una URL de búsqueda con el tema específico: "https://es.khanacademy.org/search?page_search_query=[TEMA_ESPECIFICO_TRATADO]".
-    4. Usa un lenguaje motivador y claro.
-    5. No des las respuestas de inmediato; guía al alumno con pistas (Método Socrático).
-    ${isFifthGrade ? `6. Para dudas conceptuales profundas en 5° Básico, recomienda consultar este enlace oficial del MINEDUC: ${curriculumLink}` : ''}
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Contexto: ${context}\nPregunta del alumno: ${question}`,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.7,
-      }
-    });
-    return response.text || "Lo siento, tuve un problema al procesar tu duda. ¿Podrías repetirla?";
-  } catch (error) {
-    console.error("Tutor Error:", error);
-    return "No pude conectar con mi cerebro matemático en este momento. ¡Intenta de nuevo!";
-  }
-};
-
-export const getSuggestedReplies = async (course: string, lastBotMessage: string): Promise<string[]> => {
-  if (!apiKey) return [];
-  const prompt = `Como tutor QueZadin (${course}), genera 3 sugerencias cortas de respuesta (máximo 4 palabras cada una) para que el alumno continúe la sesión de estudio tras leer: "${lastBotMessage}".
-  Si el mensaje menciona practicar o Khan Academy, una opción debe ser invocar más práctica específica del tema.
-  Retorna JSON array de strings.`;
+export const generateStudyGuide = async (unitTitle: string, unitDescription: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `Tips de estudio para "${unitTitle}": ${unitDescription}. Directo y corto.`;
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: { type: Type.ARRAY, items: { type: Type.STRING } }
-      }
+      config: { temperature: 0, thinkingConfig: { thinkingBudget: 0 } }
     });
-    return JSON.parse(response.text || "[]");
+    return response.text || "Sin tips.";
   } catch (error) {
-    return ["Dame un ejemplo", "Ver en Khan Academy", "Tengo otra duda"];
+    return "Error tips.";
   }
-};
-
-export const summarizeStudentPerformance = async (name: string, data: string): Promise<string> => {
-  if (!apiKey) return "Análisis no disponible.";
-
-  const systemInstruction = `
-    Eres "QueZadin Academic Analyst", un experto en pedagogía y análisis de datos educativos.
-    Tu tarea es generar un informe ejecutivo y motivador para el Profesor Yonathan Herrera sobre el desempeño de un alumno.
-    ESTRUCTURA DEL INFORME:
-    1. Perfil Académico: Resumen rápido del estado actual.
-    2. Fortalezas y Riesgos: Basado en promedio y asistencia.
-    3. Recomendación Pedagógica: Una acción concreta para mejorar o mantener el rendimiento.
-    Usa un tono profesional, empático y orientado a la mejora continua.
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Analiza el siguiente perfil de alumno:
-      Nombre: ${name}
-      Datos Académicos: ${data}`,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.5,
-      }
-    });
-    return response.text || "No se pudo generar el análisis.";
-  } catch (error) {
-    console.error("Analysis Error:", error);
-    return "Error al procesar el análisis pedagógico.";
-  }
-};
-
-export const generateStudyGuide = async (title: string, desc: string): Promise<string> => {
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Genera tips de estudio para: ${title}. Menciona que son recomendados por el Prof. Yonathan Herrera e incluye una recomendación genérica de buscar el tema específico en es.khanacademy.org para practicar.`,
-  });
-  return response.text || "";
-};
-
-export const translateMessage = async (text: string, lang: string): Promise<string> => {
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: `Traduce al ${lang}: ${text}`,
-  });
-  return response.text || "";
-};
+}

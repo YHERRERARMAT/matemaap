@@ -1,8 +1,18 @@
 
 import React from 'react';
-import { Users, BookOpen, Clock, TrendingUp, AlertTriangle, Calendar, Star, CheckCircle } from 'lucide-react';
+import { Users, BookOpen, Clock, TrendingUp, AlertTriangle, Calendar, Star, CheckCircle, Shield, Sparkles, Lightbulb } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Student } from '../types';
+
+const DashboardLogo = () => (
+  <div className="flex items-center gap-3 mb-4 animate-in fade-in slide-in-from-left duration-700">
+    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+      <Shield size={20} />
+    </div>
+    <div className="h-px w-8 bg-slate-200"></div>
+    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Cresta Oficial</span>
+  </div>
+);
 
 interface DashboardProps {
   selectedCourse?: string;
@@ -31,7 +41,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
   return (
     <div className="p-12 lg:p-16 space-y-12 animate-fade-in bg-transparent min-h-full max-w-[1600px] mx-auto">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 pb-12 relative">
-        {/* Sinusoidal decoration */}
         <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
           <svg width="200" height="60" viewBox="0 0 200 60">
             <path d="M0,30 C50,-20 150,80 200,30" fill="none" stroke="#6366f1" strokeWidth="2" />
@@ -39,6 +48,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
         </div>
 
         <div>
+            <DashboardLogo />
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Gestión Áurea</h1>
             <p className="text-slate-400 font-medium mt-3 text-sm tracking-widest uppercase">Análisis Geométrico • Escuela Las Quezadas</p>
         </div>
@@ -47,7 +57,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
         </div>
       </header>
 
-      {/* KPI CARDS with Golden Proportions */}
+      {/* AI INSIGHT CARD */}
+      <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 p-10 rounded-[48px] shadow-3xl border border-white/10 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-12 text-indigo-500/20 group-hover:rotate-12 transition-transform duration-1000">
+           <Sparkles size={120} />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row gap-10 items-center">
+            <div className="w-20 h-20 bg-indigo-600 rounded-[28px] flex items-center justify-center text-white shadow-2xl shadow-indigo-500/40">
+                <Lightbulb size={32} />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-2">Análisis de Red Neuronal</h3>
+                <h4 className="text-2xl font-black text-white uppercase tracking-tight">IA Insight: Refuerzo en Fracciones</h4>
+                <p className="text-slate-300 text-sm font-medium mt-4 leading-relaxed">
+                   Detectamos una caída del 12% en el promedio de la Unidad 1 en el nivel **{selectedCourse}**. 
+                   Te sugerimos enviar el **Desafío Lateral n°4** para reactivar el interés antes de la prueba del 25 de Marzo.
+                </p>
+            </div>
+            <button className="px-8 py-4 bg-white text-indigo-900 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 transition-all active:scale-95 whitespace-nowrap shadow-xl">
+               Aplicar Estrategia
+            </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {[
           { icon: Users, label: 'Alumnos', val: totalInCourse, color: 'indigo', desc: `Total en ${selectedCourse}` },
@@ -56,9 +88,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
           { icon: Star, label: 'Nivel PIE', val: pieStudents, color: 'blue', desc: 'Apoyo Diferenciado' }
         ].map((kpi, i) => (
           <div key={i} className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 relative overflow-hidden group">
-            {/* Perfect Circle decoration */}
             <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-slate-50 rounded-full group-hover:scale-150 transition-transform duration-700 opacity-50"></div>
-            
             <div className="relative z-10">
               <div className="flex justify-between items-start mb-8">
                 <div className={`p-4 bg-${kpi.color}-600 text-white rounded-2xl shadow-lg shadow-${kpi.color}-100`}>
@@ -74,14 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Distribution Chart Card */}
         <div className="lg:col-span-2 bg-white p-12 rounded-[50px] border border-slate-100 shadow-sm relative overflow-hidden">
-          <div className="absolute bottom-0 right-0 p-8 opacity-5">
-            <svg width="100" height="100" viewBox="0 0 100 100">
-              <rect x="10" y="10" width="80" height="80" fill="none" stroke="currentColor" strokeWidth="1" strokeDasharray="5 5" />
-            </svg>
-          </div>
-
           <h3 className="text-xl font-black text-slate-900 mb-10 flex items-center gap-4 uppercase tracking-tighter">
             <BookOpen size={24} className="text-indigo-600" /> Distribución Proporcional
           </h3>
@@ -105,13 +128,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
           </div>
         </div>
 
-        {/* Agenda Section */}
         <div className="bg-slate-900 p-12 rounded-[50px] text-white shadow-3xl relative overflow-hidden">
-            {/* Mathematical Spiral Path */}
-            <svg className="absolute top-0 right-0 w-full h-full opacity-10 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M0,0 Q50,0 50,50 T100,100" fill="none" stroke="white" strokeWidth="0.5" />
-            </svg>
-
             <h3 className="text-xl font-black mb-10 flex items-center gap-4 uppercase tracking-tighter relative z-10">
                 <Calendar size={24} className="text-indigo-400" /> Ciclo de Evaluación
             </h3>
@@ -131,14 +148,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
                       </div>
                   </div>
                 ))}
-            </div>
-            
-            <div className="mt-16 p-8 bg-white/5 rounded-[32px] border border-white/10 relative z-10">
-                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-500 mb-4">Estado de Red</p>
-                <div className="flex items-center gap-4">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <p className="text-xs font-bold text-slate-300">85% Asistencia Histórica</p>
-                </div>
             </div>
         </div>
       </div>

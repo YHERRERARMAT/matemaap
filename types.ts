@@ -61,7 +61,7 @@ export interface PlanningUnit {
   grade?: string; // Nuevo: Para filtrar por curso
 }
 
-export type ViewState = 'dashboard' | 'communication' | 'students' | 'planning' | 'quezadin';
+export type ViewState = 'dashboard' | 'communication' | 'students' | 'planning' | 'quezadin' | 'challenges' | 'parent_view';
 
 export interface AuthState {
   user: Student | { name: string; role: UserRole.TEACHER } | null;

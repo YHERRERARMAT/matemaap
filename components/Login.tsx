@@ -1,7 +1,17 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, GraduationCap, UserCircle2, ArrowRight, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { ShieldCheck, GraduationCap, UserCircle2, ArrowRight, AlertCircle, CheckCircle2, XCircle, Loader2, Shield } from 'lucide-react';
 import { Student } from '../types';
+
+const LoginLogo = () => (
+  <div className="relative flex items-center justify-center w-24 h-24 bg-white rounded-[32px] mx-auto shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500 ring-8 ring-white/5">
+    <div className="absolute inset-0 bg-slate-900 rounded-[32px] transform rotate-3 scale-95 opacity-5"></div>
+    <div className="relative z-10 flex flex-col items-center text-indigo-600">
+      <Shield size={40} className="mb-[-2px]" />
+      <span className="font-serif text-xl font-black tracking-tighter">LQ</span>
+    </div>
+  </div>
+);
 
 interface LoginProps {
   onLogin: (rut: string) => void;
@@ -112,9 +122,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin, students }) => {
 
       <div className="w-full max-w-md z-10">
         <div className="text-center mb-10">
-          <div className="w-24 h-24 bg-white rounded-[32px] mx-auto flex items-center justify-center shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500 ring-8 ring-white/5">
-             <GraduationCap size={48} className="text-indigo-600" />
-          </div>
+          <LoginLogo />
           <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-2">MatemApp</h1>
           <p className="text-slate-400 font-medium tracking-wide uppercase text-[10px]">Escuela Las Quezadas • Tutoría QueZadin</p>
         </div>
