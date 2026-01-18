@@ -6,14 +6,17 @@ import { Student, PlanningUnit } from "../types";
  * getAiTutorResponseStream: OPTIMIZADO PARA VELOCIDAD TURBO
  * - Utiliza gemini-3-flash-preview para una latencia mínima.
  * - Temperatura 0 para respuestas deterministas y rápidas.
- * - Instrucciones de sistema minimalistas para reducir el tiempo de procesamiento de prompt.
- * - Deshabilita el presupuesto de pensamiento para prioridad absoluta en velocidad.
+ * - Instrucciones de sistema para usar Khan Academy en español y relevancia temática.
  */
 export async function* getAiTutorResponseStream(course: string, question: string) {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-  // Instrucción minimalista para reducir el procesamiento inicial del prompt
-  const systemInstruction = `Eres QueZadin, tutor de mates para ${course}. Breve, motivador, Markdown. Usa Google Search si es útil.`;
+  const systemInstruction = `Eres QueZadin, tutor de mates para ${course}. 
+  REGLAS CRÍTICAS:
+  1. Sé breve, motivador y usa Markdown.
+  2. Si sugieres videos o ejercicios de Khan Academy, usa SIEMPRE el dominio es.khanacademy.org.
+  3. Asegúrate de que los enlaces de Khan Academy incluyan el tema específico (ej: /math/aritmetica/fracciones) para que sean útiles.
+  4. Usa Google Search para encontrar el enlace exacto si no lo conoces.`;
 
   try {
     const result = await ai.models.generateContentStream({
@@ -23,14 +26,13 @@ export async function* getAiTutorResponseStream(course: string, question: string
         systemInstruction: systemInstruction,
         tools: [{ googleSearch: {} }],
         temperature: 0,
-        maxOutputTokens: 450,
+        maxOutputTokens: 500,
         thinkingConfig: { thinkingBudget: 0 }
       }
     });
 
     for await (const chunk of result) {
       if (chunk.text) {
-        // Obtenemos fuentes de grounding si están presentes para citar en la UI
         const sources = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks;
         yield { text: chunk.text, sources: sources };
       }

@@ -4,6 +4,7 @@ import { Bell, Calendar, GraduationCap, MessageCircle, FileText, CheckCircle, Bo
 import { ANNOUNCEMENTS, PLANNING_DATA } from '../constants';
 import { Student } from '../types';
 import { QueZadinChat } from './QueZadinChat';
+import { EscuelaInsignia } from './Insignia';
 
 interface ParentPortalProps {
   student: Student;
@@ -13,12 +14,10 @@ interface ParentPortalProps {
 export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'inicio' | 'evaluaciones' | 'tutor'>('inicio');
 
-  // Filtrar anuncios por el curso del alumno o anuncios generales
   const filteredAnnouncements = useMemo(() => {
     return ANNOUNCEMENTS.filter(ann => !ann.grade || ann.grade === student.grade);
   }, [student.grade]);
 
-  // Filtrar planificación para mostrar exámenes próximos del nivel
   const coursePlanning = useMemo(() => {
     return PLANNING_DATA.filter(unit => unit.grade === student.grade);
   }, [student.grade]);
@@ -41,13 +40,10 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
 
   return (
     <div className="h-full bg-slate-50 flex flex-col font-sans max-w-md mx-auto relative overflow-hidden">
-      {/* Header Institucional */}
       <header className="bg-slate-900 text-white shadow-lg shrink-0 z-50">
         <div className="px-4 py-5 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center border border-indigo-400 shadow-sm">
-               <Shield size={20} className="text-white" />
-            </div>
+            <EscuelaInsignia size={32} />
             <div>
                 <h1 className="font-black text-xs uppercase tracking-tight">Escuela Las Quezadas</h1>
                 <p className="text-[8px] text-blue-400 font-bold uppercase tracking-widest">MatemApp 360°</p>
@@ -59,11 +55,9 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto pb-24 bg-slate-50 custom-scrollbar">
         {activeTab === 'inicio' && (
           <div className="p-4 space-y-6 animate-fade-in">
-            {/* Student Info Card */}
             <div className="bg-white rounded-[32px] shadow-sm p-6 border border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <img src={student.avatar} className="w-14 h-14 rounded-2xl border-2 border-slate-50 shadow-md object-cover" alt="Alumno" />
@@ -78,7 +72,6 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
                 </div>
             </div>
 
-            {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-indigo-600 rounded-3xl p-5 text-white shadow-xl shadow-indigo-100">
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Asistencia</p>
@@ -181,7 +174,6 @@ export const ParentPortal: React.FC<ParentPortalProps> = ({ student, onLogout })
         )}
       </div>
 
-      {/* Tab Navigation Footer - Fixed to bottom of CONTAINER, not screen */}
       <nav className="absolute bottom-0 w-full bg-white border-t border-slate-100 p-4 flex justify-around items-center shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50">
         <button 
             onClick={() => setActiveTab('inicio')}

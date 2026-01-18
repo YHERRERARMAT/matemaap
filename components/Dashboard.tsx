@@ -1,18 +1,9 @@
 
-import React from 'react';
-import { Users, BookOpen, Clock, TrendingUp, AlertTriangle, Calendar, Star, CheckCircle, Shield, Sparkles, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, BookOpen, Clock, TrendingUp, AlertTriangle, Calendar, Star, CheckCircle, Shield, Sparkles, Lightbulb, Loader2, Check } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Student } from '../types';
-
-const DashboardLogo = () => (
-  <div className="flex items-center gap-3 mb-4 animate-in fade-in slide-in-from-left duration-700">
-    <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
-      <Shield size={20} />
-    </div>
-    <div className="h-px w-8 bg-slate-200"></div>
-    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Cresta Oficial</span>
-  </div>
-);
+import { EscuelaInsignia } from './Insignia';
 
 interface DashboardProps {
   selectedCourse?: string;
@@ -20,6 +11,10 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Básico', students }) => {
+  const [isApplying, setIsApplying] = useState(false);
+  const [appliedCourses, setAppliedCourses] = useState<Set<string>>(new Set());
+  const [showToast, setShowToast] = useState(false);
+
   const courseStudents = students.filter(s => s.grade === selectedCourse);
   const totalInCourse = courseStudents.length;
   
@@ -30,6 +25,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
   const atRisk = courseStudents.filter(s => s.averageScore < 4.0 && s.averageScore > 0).length;
   const pieStudents = courseStudents.filter(s => s.isPIE).length;
 
+  const isAlreadyApplied = appliedCourses.has(selectedCourse);
+
+  const handleApplyStrategy = async () => {
+    if (isAlreadyApplied || isApplying) return;
+
+    setIsApplying(true);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    setAppliedCourses(prev => new Set(prev).add(selectedCourse));
+    setIsApplying(false);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
   const data = [
     { name: '4° Básico', count: students.filter(s => s.grade === '4° Básico').length },
     { name: '5° Básico', count: students.filter(s => s.grade === '5° Básico').length },
@@ -38,8 +47,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
     { name: '8° Básico', count: students.filter(s => s.grade === '8° Básico').length },
   ];
 
+  const getInsightText = () => {
+    if (selectedCourse.includes('4°') || selectedCourse.includes('5°')) {
+      return `Detectamos una caída del 12% en el promedio de la Unidad 1 en el nivel **${selectedCourse}**. Te sugerimos enviar el **Desafío Lateral n°4** para reactivar el interés antes de la prueba del 25 de Marzo.`;
+    }
+    return `El nivel **${selectedCourse}** muestra una brecha en Razonamiento Lógico. Recomendamos asignar la **Misión de Refuerzo n°7** para estabilizar los promedios antes del cierre de unidad.`;
+  };
+
   return (
-    <div className="p-12 lg:p-16 space-y-12 animate-fade-in bg-transparent min-h-full max-w-[1600px] mx-auto">
+    <div className="p-12 lg:p-16 space-y-12 animate-fade-in bg-transparent min-h-full max-w-[1600px] mx-auto relative">
+      {/* Success Toast */}
+      {showToast && (
+        <div className="fixed top-10 right-10 z-[100] bg-emerald-600 text-white px-8 py-5 rounded-[24px] shadow-2xl flex items-center gap-4 animate-in slide-in-from-right duration-500 border border-emerald-400">
+          <div className="bg-white/20 p-2 rounded-xl">
+             <Check size={20} className="text-white" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Estrategia Asignada</p>
+            <p className="text-sm font-bold uppercase tracking-tight">Plan aplicado a {selectedCourse}</p>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-200 pb-12 relative">
         <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
           <svg width="200" height="60" viewBox="0 0 200 60">
@@ -48,7 +77,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
         </div>
 
         <div>
-            <DashboardLogo />
+            <div className="flex items-center gap-4 mb-4 animate-in fade-in slide-in-from-left duration-700">
+                <EscuelaInsignia size={50} />
+                <div className="h-px w-8 bg-slate-200"></div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Sello Institucional</span>
+            </div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Gestión Áurea</h1>
             <p className="text-slate-400 font-medium mt-3 text-sm tracking-widest uppercase">Análisis Geométrico • Escuela Las Quezadas</p>
         </div>
@@ -57,25 +90,52 @@ export const Dashboard: React.FC<DashboardProps> = ({ selectedCourse = '5° Bás
         </div>
       </header>
 
-      {/* AI INSIGHT CARD */}
-      <div className="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 p-10 rounded-[48px] shadow-3xl border border-white/10 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-12 text-indigo-500/20 group-hover:rotate-12 transition-transform duration-1000">
-           <Sparkles size={120} />
+      {/* AI INSIGHT CARD DINÁMICA */}
+      <div className={`p-10 rounded-[48px] shadow-3xl border transition-all duration-700 relative overflow-hidden group ${
+        isAlreadyApplied 
+          ? 'bg-gradient-to-r from-emerald-900 via-slate-900 to-emerald-950 border-emerald-500/30' 
+          : 'bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 border-white/10'
+      }`}>
+        <div className="absolute top-0 right-0 p-12 text-white/5 opacity-10 group-hover:rotate-12 transition-transform duration-1000">
+           {isAlreadyApplied ? <Check size={120} /> : <Sparkles size={120} />}
         </div>
         <div className="relative z-10 flex flex-col md:flex-row gap-10 items-center">
-            <div className="w-20 h-20 bg-indigo-600 rounded-[28px] flex items-center justify-center text-white shadow-2xl shadow-indigo-500/40">
-                <Lightbulb size={32} />
+            <div className={`w-20 h-20 rounded-[28px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 ${
+              isAlreadyApplied ? 'bg-emerald-600 shadow-emerald-500/40' : 'bg-indigo-600 shadow-indigo-500/40'
+            }`}>
+                {isAlreadyApplied ? <CheckCircle size={32} /> : <Lightbulb size={32} />}
             </div>
             <div className="flex-1 text-center md:text-left">
-                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-2">Análisis de Red Neuronal</h3>
-                <h4 className="text-2xl font-black text-white uppercase tracking-tight">IA Insight: Refuerzo en Fracciones</h4>
+                <h3 className={`text-[10px] font-black uppercase tracking-[0.4em] mb-2 ${
+                  isAlreadyApplied ? 'text-emerald-400' : 'text-indigo-400'
+                }`}>Análisis de Red Neuronal</h3>
+                <h4 className="text-2xl font-black text-white uppercase tracking-tight">
+                  {isAlreadyApplied ? `Estrategia Activa en ${selectedCourse}` : `IA Insight: Refuerzo para ${selectedCourse}`}
+                </h4>
                 <p className="text-slate-300 text-sm font-medium mt-4 leading-relaxed">
-                   Detectamos una caída del 12% en el promedio de la Unidad 1 en el nivel **{selectedCourse}**. 
-                   Te sugerimos enviar el **Desafío Lateral n°4** para reactivar el interés antes de la prueba del 25 de Marzo.
+                   {getInsightText()}
                 </p>
             </div>
-            <button className="px-8 py-4 bg-white text-indigo-900 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-indigo-50 transition-all active:scale-95 whitespace-nowrap shadow-xl">
-               Aplicar Estrategia
+            <button 
+              onClick={handleApplyStrategy}
+              disabled={isAlreadyApplied || isApplying}
+              className={`px-8 py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 whitespace-nowrap shadow-xl flex items-center gap-3 ${
+                isAlreadyApplied 
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 cursor-default' 
+                  : 'bg-white text-indigo-900 hover:bg-indigo-50'
+              }`}
+            >
+               {isApplying ? (
+                 <>
+                   <Loader2 size={16} className="animate-spin" /> Procesando...
+                 </>
+               ) : isAlreadyApplied ? (
+                 <>
+                   <Check size={16} /> Estrategia Aplicada
+                 </>
+               ) : (
+                 'Aplicar Estrategia'
+               )}
             </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Send, Sparkles, Languages, MessageSquare, Bot, User, ChevronRight, Inbox, BookOpen, Wand2, Loader2, CheckCircle2 } from 'lucide-react';
-import { INITIAL_CONVERSATIONS, PLANNING_DATA, COURSES } from '../constants';
+import { Send, Sparkles, MessageSquare, Bot, User, ArrowUpRight, Inbox, Wand2, Loader2, UserCircle2, ChevronRight, Hash } from 'lucide-react';
+import { PLANNING_DATA, COURSES } from '../constants';
 import { Conversation, Message, Student } from '../types';
 import { getTeacherCopilotReply } from '../services/geminiService';
 
@@ -9,17 +9,23 @@ interface CommunicationProps {
   selectedCourse: string;
   onSelectCourse: (course: string) => void;
   students: Student[];
+  conversations: Conversation[];
+  setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>;
 }
 
-export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, onSelectCourse, students }) => {
-  const [conversations, setConversations] = useState<Conversation[]>(INITIAL_CONVERSATIONS);
+export const Communication: React.FC<CommunicationProps> = ({ 
+  selectedCourse, 
+  onSelectCourse, 
+  students,
+  conversations,
+  setConversations
+}) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Filtrar las conversaciones por el curso seleccionado
   const filteredConversations = useMemo(() => {
     return conversations.filter(conv => {
       const student = students.find(s => s.id === conv.studentId);
@@ -27,7 +33,6 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
     });
   }, [conversations, selectedCourse, students]);
 
-  // Identificar conversaciones que necesitan respuesta (último mensaje no es del profesor)
   const pendingConversations = useMemo(() => {
     return filteredConversations.filter(conv => {
       const lastMsg = conv.messages[conv.messages.length - 1];
@@ -35,7 +40,6 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
     });
   }, [filteredConversations]);
 
-  // Calcular cantidad de chats por curso
   const courseStats = useMemo(() => {
     return COURSES.reduce((acc, course) => {
       const chatsInCourse = conversations.filter(conv => {
@@ -44,7 +48,7 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
       });
       acc[course] = {
         total: chatsInCourse.length,
-        unread: chatsInCourse.reduce((sum, c) => sum + c.unreadCount, 0)
+        unread: chatsInCourse.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
       };
       return acc;
     }, {} as Record<string, { total: number, unread: number }>);
@@ -68,9 +72,15 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
       const student = students.find(s => s.id === conv?.studentId);
       if (student?.grade !== selectedCourse) {
         setSelectedId(null);
+      } else {
+        if (conv && conv.unreadCount > 0) {
+          setConversations(prev => prev.map(c => 
+            c.id === selectedId ? { ...c, unreadCount: 0 } : c
+          ));
+        }
       }
     }
-  }, [selectedCourse, selectedId, conversations, students]);
+  }, [selectedCourse, selectedId, students]);
 
   const handleSendMessage = (textOverride?: string, isAi = false) => {
     const text = textOverride || inputText;
@@ -102,43 +112,20 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
 
   const handleAutoReplyAll = async () => {
     if (pendingConversations.length === 0 || isBulkProcessing) return;
-    
     setIsBulkProcessing(true);
-    
-    // Procesamos cada conversación pendiente
     for (const conv of pendingConversations) {
       const student = students.find(s => s.id === conv.studentId);
       if (!student) continue;
-
       const context = conv.messages.map(m => `${m.senderName}: ${m.content}`);
       const aiReply = await getTeacherCopilotReply(context, student, currentUnit);
-
       const newMessage: Message = {
         id: 'bulk-ai-' + Date.now() + Math.random(),
-        senderId: 'teacher',
-        senderName: 'Prof. Yonathan Herrera',
-        content: aiReply,
-        timestamp: new Date(),
-        isMine: true,
-        isAiGenerated: true
+        senderId: 'teacher', senderName: 'Prof. Yonathan Herrera',
+        content: aiReply, timestamp: new Date(), isMine: true, isAiGenerated: true
       };
-
-      setConversations(prev => prev.map(c => {
-        if (c.id === conv.id) {
-          return {
-            ...c,
-            messages: [...c.messages, newMessage],
-            lastMessage: aiReply,
-            unreadCount: 0
-          };
-        }
-        return c;
-      }));
-      
-      // Pequeño delay para no saturar visualmente
+      setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, messages: [...c.messages, newMessage], lastMessage: aiReply, unreadCount: 0 } : c));
       await new Promise(r => setTimeout(r, 600));
     }
-    
     setIsBulkProcessing(false);
   };
 
@@ -152,38 +139,37 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
   };
 
   return (
-    <div className="flex h-full bg-slate-50 overflow-hidden">
-      {/* BARRA LATERAL DE CURSOS */}
-      <div className="w-64 bg-slate-900 flex flex-col border-r border-slate-800 z-20 shrink-0">
-        <div className="p-6 border-b border-slate-800">
-           <div className="flex items-center gap-3 text-white mb-2">
-              <Inbox size={20} className="text-blue-400" />
-              <h2 className="font-black text-xs uppercase tracking-widest">Mis Cursos</h2>
+    <div className="flex h-full bg-white overflow-hidden">
+      {/* BARRA LATERAL DE CURSOS: Estilo alineado con Sidebar Institucional */}
+      <div className="w-64 bg-slate-50 flex flex-col border-r border-slate-200 z-20 shrink-0">
+        <div className="p-8 border-b border-slate-200">
+           <div className="flex items-center gap-3 text-slate-900 mb-2">
+              <Inbox size={18} className="text-indigo-600" />
+              <h2 className="font-black text-[10px] uppercase tracking-[0.3em]">Cursos Activos</h2>
            </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto py-4 space-y-1 px-3 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto py-6 space-y-2 px-4 custom-scrollbar">
           {COURSES.map(course => {
             const isActive = selectedCourse === course;
             const stats = courseStats[course];
-            
             return (
               <button
                 key={course}
                 onClick={() => onSelectCourse(course)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-300 group ${
+                className={`w-full flex items-center justify-between p-4 rounded-[20px] transition-all duration-300 group ${
                   isActive 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' 
+                    : 'text-slate-400 hover:bg-white hover:text-slate-900'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-yellow-400' : 'bg-slate-600'}`}></div>
-                  <span className="font-bold text-xs uppercase tracking-tighter">{course}</span>
+                <div className="flex items-center gap-4">
+                  <div className={`w-2 h-2 rounded-full transition-all ${isActive ? 'bg-indigo-400 scale-125' : 'bg-slate-200 group-hover:bg-slate-400'}`}></div>
+                  <span className="font-black text-[10px] uppercase tracking-widest">{course}</span>
                 </div>
                 {stats.total > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-black ${isActive ? 'text-blue-200' : 'text-slate-500'}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-black ${isActive ? 'text-indigo-200' : 'text-slate-400'}`}>
                       {stats.total}
                     </span>
                     {stats.unread > 0 && (
@@ -197,16 +183,16 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
         </div>
       </div>
 
-      {/* LISTADO DE CHATS DEL CURSO SELECCIONADO */}
-      <div className="w-80 md:w-96 bg-white border-r border-slate-200 flex flex-col shadow-sm z-10 shrink-0">
-        <div className="p-6 border-b border-slate-100 space-y-4 bg-white sticky top-0 z-20">
+      {/* LISTADO DE CHATS: Diseño de Muro de Actividad */}
+      <div className="w-80 md:w-96 bg-white border-r border-slate-100 flex flex-col z-10 shrink-0">
+        <div className="p-8 border-b border-slate-100 space-y-6 bg-white sticky top-0 z-20 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase">{selectedCourse}</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Canal de Comunicación</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">{selectedCourse.split(' ')[0]}</h3>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-2">Canal Docente</p>
             </div>
-            <div className="bg-slate-100 px-3 py-1 rounded-full text-[10px] font-black text-slate-500">
-              {filteredConversations.length} CHATS
+            <div className="bg-slate-50 border border-slate-100 px-4 py-1.5 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              {filteredConversations.length} CONVERSACIONES
             </div>
           </div>
 
@@ -214,23 +200,23 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
             <button 
               onClick={handleAutoReplyAll}
               disabled={isBulkProcessing}
-              className="w-full flex items-center justify-center gap-3 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:from-indigo-700 hover:to-blue-700 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 text-white rounded-[24px] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed group active:scale-95"
             >
               {isBulkProcessing ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" /> Procesando con IA...
+                  <Loader2 size={16} className="animate-spin" /> Procesando...
                 </>
               ) : (
                 <>
                   <Wand2 size={16} className="group-hover:rotate-12 transition-transform" /> 
-                  Auto-Responder {pendingConversations.length} Pendientes
+                  Auto-Responder ({pendingConversations.length})
                 </>
               )}
             </button>
           )}
         </div>
         
-        <div className="flex-1 overflow-y-auto bg-slate-50/20 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-slate-50/30 custom-scrollbar">
           {filteredConversations.length > 0 ? (
             filteredConversations.map(conv => {
               const student = students.find(s => s.id === conv.studentId);
@@ -241,27 +227,28 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
                 <div 
                   key={conv.id} 
                   onClick={() => setSelectedId(conv.id)} 
-                  className={`p-5 border-b border-slate-50 cursor-pointer transition-all hover:bg-white group relative ${
-                    isActive ? 'bg-white border-l-4 border-l-blue-600 shadow-sm' : 'border-l-4 border-l-transparent'
+                  className={`p-6 border-b border-slate-50 cursor-pointer transition-all duration-300 relative group overflow-hidden ${
+                    isActive ? 'bg-white shadow-md z-10' : 'hover:bg-white'
                   }`}
                 >
-                  <div className="flex gap-4">
-                    <div className={`w-12 h-12 rounded-2xl shrink-0 flex items-center justify-center font-bold text-lg shadow-sm transition-transform group-hover:scale-105 ${
-                      isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'
+                  {isActive && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600"></div>}
+                  <div className="flex gap-5">
+                    <div className={`w-14 h-14 rounded-[22px] shrink-0 flex items-center justify-center font-black text-xl shadow-sm transition-transform duration-500 group-hover:scale-105 ${
+                      isActive ? 'bg-indigo-600 text-white shadow-indigo-100' : 'bg-slate-100 text-slate-400'
                     }`}>
                       {conv.parentName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-0.5">
-                        <h4 className="font-black text-slate-900 truncate text-xs uppercase tracking-tighter">{conv.parentName}</h4>
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="font-black text-slate-900 truncate text-[11px] uppercase tracking-tight">{conv.parentName}</h4>
                         {isPending && (
-                          <span className="flex items-center gap-1 text-[8px] font-black text-orange-500 uppercase bg-orange-50 px-1.5 py-0.5 rounded">
-                             Pendiente
-                          </span>
+                          <div className="w-2 h-2 bg-orange-500 rounded-full shadow-lg shadow-orange-200"></div>
                         )}
                       </div>
-                      <p className="text-[10px] text-blue-600 font-black truncate uppercase tracking-tighter">ALUMNO: {student?.name}</p>
-                      <p className={`text-xs mt-1 line-clamp-1 italic font-medium leading-tight ${isPending ? 'text-slate-900 font-bold' : 'text-slate-400'}`}>
+                      <p className="text-[9px] text-indigo-600 font-black truncate uppercase tracking-widest mb-2 opacity-70">
+                        {student?.name}
+                      </p>
+                      <p className={`text-xs line-clamp-2 leading-snug transition-colors ${isPending ? 'text-slate-900 font-bold italic' : 'text-slate-400 font-medium'}`}>
                         "{conv.lastMessage}"
                       </p>
                     </div>
@@ -270,97 +257,110 @@ export const Communication: React.FC<CommunicationProps> = ({ selectedCourse, on
               );
             })
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-center opacity-30">
-               <MessageSquare size={48} className="mb-4 text-slate-300" />
-               <p className="text-xs font-black uppercase tracking-widest text-slate-400">Sin mensajes en este curso</p>
+            <div className="flex flex-col items-center justify-center h-full p-12 text-center opacity-40">
+               <MessageSquare size={48} className="mb-4 text-slate-200" />
+               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Sin actividad reciente</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ÁREA DE CONVERSACIÓN ACTIVA */}
+      {/* ÁREA DE CONVERSACIÓN: Estilo Burbujas Áureas */}
       <div className="flex-1 flex flex-col bg-white overflow-hidden relative">
         {activeConversation && activeStudent ? (
           <>
-            <div className="p-4 md:p-6 border-b border-slate-100 flex justify-between items-center bg-white shadow-sm z-20">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg"><User size={24} /></div>
-                <div>
-                  <h3 className="font-black text-slate-900 text-lg uppercase tracking-tighter">{activeConversation.parentName}</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">{activeStudent.name} • {selectedCourse}</p>
+            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white/80 backdrop-blur-md z-20 shadow-sm">
+              <div className="flex items-center gap-5">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-[24px] bg-slate-900 flex items-center justify-center text-white shadow-2xl shadow-slate-200 transform transition-transform hover:rotate-3">
+                    <UserCircle2 size={28} />
                   </div>
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-4 border-white"></div>
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-xl uppercase tracking-tighter leading-none">{activeConversation.parentName}</h3>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                    <Hash size={12} className="text-indigo-600" /> {activeStudent.name}
+                  </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button 
                   onClick={handleMagicDraft}
                   disabled={isAiLoading}
-                  className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100"
+                  className="flex items-center gap-3 px-6 py-3 bg-indigo-50 text-indigo-600 rounded-[20px] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-indigo-600 hover:text-white transition-all shadow-sm border border-indigo-100 active:scale-95 group"
                 >
-                  <Sparkles size={14} /> {isAiLoading ? 'Redactando...' : 'Borrador IA'}
+                  <Sparkles size={16} className="group-hover:rotate-12 transition-transform" /> 
+                  {isAiLoading ? 'Redactando...' : 'Copiloto IA'}
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/30 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-slate-50/20 custom-scrollbar">
               {activeConversation.messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-                  <div className={`max-w-[75%] rounded-3xl p-5 shadow-sm relative ${
+                <div key={msg.id} className={`flex ${msg.isMine ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                  <div className={`max-w-[80%] md:max-w-[70%] rounded-[32px] p-7 shadow-sm relative transition-all duration-500 ${
                     msg.isMine 
-                      ? 'bg-blue-600 text-white rounded-tr-none' 
-                      : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
+                      ? 'bg-slate-900 text-white rounded-tr-none shadow-xl shadow-slate-200' 
+                      : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none shadow-md'
                   }`}>
                     {msg.isAiGenerated && (
-                      <div className="absolute -top-3 -left-3 bg-yellow-400 text-slate-900 p-1.5 rounded-full shadow-md">
-                        <Sparkles size={10} />
+                      <div className="absolute -top-4 -left-4 bg-indigo-600 text-white p-2 rounded-full shadow-xl border-4 border-white animate-bounce-slow">
+                        <Sparkles size={12} />
                       </div>
                     )}
-                    <p className="text-sm font-medium leading-relaxed">{msg.content}</p>
-                    <p className={`text-[9px] mt-2 font-black uppercase tracking-widest ${msg.isMine ? 'text-blue-200' : 'text-slate-400'}`}>
-                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {msg.senderName} 
-                      {msg.isAiGenerated && ' (Sugerido por IA)'}
-                    </p>
+                    <p className="text-[15px] font-medium leading-relaxed">{msg.content}</p>
+                    <div className={`flex items-center gap-3 mt-4 pt-4 border-t ${msg.isMine ? 'border-white/10' : 'border-slate-50'}`}>
+                      <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${msg.isMine ? 'text-indigo-400' : 'text-slate-400'}`}>
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                      <span className={`text-[9px] font-black uppercase tracking-[0.1em] ${msg.isMine ? 'text-white/60' : 'text-slate-400'}`}>
+                        {msg.isAiGenerated ? 'Propuesta Asistida' : msg.senderName.split(' ')[0]}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-6 bg-white border-t border-slate-100">
-                <div className="flex gap-3 items-end bg-slate-50 p-3 rounded-3xl border border-slate-200 focus-within:ring-4 focus-within:ring-blue-50 transition-all">
+            <div className="p-8 bg-white border-t border-slate-100">
+                <div className="flex gap-4 items-end bg-slate-50 p-4 rounded-[32px] border-2 border-slate-100 focus-within:border-indigo-500 focus-within:bg-white transition-all duration-500 shadow-inner">
                     <textarea 
                       value={inputText} 
                       onChange={(e) => setInputText(e.target.value)} 
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
-                      placeholder="Escribe tu respuesta docente..." 
-                      className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2 resize-none max-h-32 font-medium" 
+                      placeholder="Redactar respuesta para el apoderado..." 
+                      className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] py-3 px-2 resize-none max-h-40 font-medium placeholder:text-slate-300" 
                       rows={1} 
                     />
                     <button 
                       onClick={() => handleSendMessage()} 
                       disabled={!inputText.trim()} 
-                      className="p-4 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-100 hover:bg-blue-700 disabled:opacity-50 transition-all active:scale-95"
+                      className="w-14 h-14 shrink-0 bg-indigo-600 text-white rounded-[22px] shadow-2xl shadow-indigo-200 hover:bg-indigo-700 disabled:opacity-40 transition-all active:scale-90 flex items-center justify-center"
                     >
-                      <Send size={24} />
+                      <Send size={24} className="transform -rotate-12 translate-x-0.5" />
                     </button>
                 </div>
+                <p className="text-center text-[9px] text-slate-400 font-bold uppercase tracking-[0.3em] mt-6 opacity-60 italic">
+                  Las Quezadas • Comunicación Transparente
+                </p>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-20 text-center uppercase font-black tracking-widest text-sm opacity-50">
-             <div className="w-24 h-24 bg-slate-100 rounded-[40px] flex items-center justify-center mb-6">
-                <Bot size={48} className="text-slate-200" />
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-300 p-20 text-center animate-pulse">
+             <div className="w-24 h-24 bg-slate-50 rounded-[44px] flex items-center justify-center mb-8 border-4 border-slate-100 shadow-inner">
+                <Bot size={56} className="text-slate-100" />
              </div>
-             {isBulkProcessing ? (
-               <div className="flex flex-col items-center gap-4">
-                  <Loader2 size={32} className="animate-spin text-indigo-500" />
-                  <span>Procesando respuestas del curso...</span>
-               </div>
-             ) : (
-               <span>Selecciona una conversación del nivel {selectedCourse}</span>
-             )}
+             <div className="max-w-xs space-y-4">
+                <span className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-400">Canal Maestro Activo</span>
+                <p className="text-sm font-medium text-slate-400 leading-relaxed uppercase tracking-tighter">
+                  {isBulkProcessing 
+                    ? `Ejecutando protocolo de respuesta automática para ${selectedCourse}...` 
+                    : `Selecciona un hilo de conversación de ${selectedCourse} para iniciar el acompañamiento.`}
+                </p>
+             </div>
           </div>
         )}
       </div>

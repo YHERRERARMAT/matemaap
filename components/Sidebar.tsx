@@ -1,19 +1,34 @@
 
-import React from 'react';
-import { LayoutDashboard, MessageSquare, Users, CalendarDays, Settings, LogOut, GraduationCap, ChevronRight, UserCircle, Sparkles, Puzzle, Smartphone, Shield } from 'lucide-react';
+import React, { useReducer, useEffect } from 'react';
+import { LayoutDashboard, MessageSquare, Users, CalendarDays, Settings, LogOut, GraduationCap, ChevronRight, UserCircle, Sparkles, Puzzle, Smartphone } from 'lucide-react';
 import { ViewState, UserRole } from '../types';
+import { EscuelaInsignia } from './Insignia';
 
-// Reusable School Logo component
-const SchoolLogo = ({ className = "w-14 h-14" }: { className?: string }) => (
-  <div className={`relative flex items-center justify-center ${className}`}>
-    <div className="absolute inset-0 bg-slate-900 rounded-2xl shadow-xl transform rotate-3"></div>
-    <div className="absolute inset-0 bg-indigo-600 rounded-2xl shadow-lg transform -rotate-3 opacity-80"></div>
-    <div className="relative z-10 text-white flex flex-col items-center">
-      <Shield size={24} className="mb-[-4px]" />
-      <span className="font-serif text-lg font-black tracking-tighter">LQ</span>
-    </div>
-  </div>
-);
+// Tipado para el estado del Reducer
+interface SidebarState {
+  currentView: ViewState;
+  selectedCourse: string;
+}
+
+// Tipado para las acciones del Reducer
+type SidebarAction = 
+  | { type: 'SET_VIEW'; view: ViewState }
+  | { type: 'SET_COURSE'; course: string }
+  | { type: 'SYNC_PROPS'; view: ViewState; course: string };
+
+// Reducer para manejar la lógica de navegación
+const sidebarReducer = (state: SidebarState, action: SidebarAction): SidebarState => {
+  switch (action.type) {
+    case 'SET_VIEW':
+      return { ...state, currentView: action.view };
+    case 'SET_COURSE':
+      return { ...state, selectedCourse: action.course };
+    case 'SYNC_PROPS':
+      return { currentView: action.view, selectedCourse: action.course };
+    default:
+      return state;
+  }
+};
 
 interface SidebarProps {
   currentView: ViewState;
@@ -23,17 +38,28 @@ interface SidebarProps {
   userRole: UserRole;
   onToggleRole: () => void;
   userName?: string;
+  unreadMessagesCount?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
-  currentView, 
+  currentView: propsView, 
   onChangeView, 
-  selectedCourse, 
+  selectedCourse: propsCourse, 
   onSelectCourse,
   userRole,
   onToggleRole,
-  userName
+  userName,
+  unreadMessagesCount = 0
 }) => {
+  const [state, dispatch] = useReducer(sidebarReducer, {
+    currentView: propsView,
+    selectedCourse: propsCourse
+  });
+
+  useEffect(() => {
+    dispatch({ type: 'SYNC_PROPS', view: propsView, course: propsCourse });
+  }, [propsView, propsCourse]);
+
   const navItems = [
     { id: 'dashboard', label: 'Panel', icon: LayoutDashboard },
     { id: 'communication', label: 'Mensajes', icon: MessageSquare },
@@ -46,6 +72,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const courses = ['4° Básico', '5° Básico', '6° Básico', '7° Básico', '8° Básico'];
 
+  const handleViewChange = (view: ViewState) => {
+    dispatch({ type: 'SET_VIEW', view });
+    onChangeView(view);
+  };
+
+  const handleCourseChange = (course: string) => {
+    dispatch({ type: 'SET_COURSE', course });
+    onSelectCourse(course);
+  };
+
   return (
     <aside className="w-20 lg:w-[280px] bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 transition-all duration-500 z-50 shadow-sm overflow-hidden">
       <div className="absolute top-0 right-0 p-2 opacity-5 pointer-events-none">
@@ -56,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="p-8 flex flex-col items-center lg:items-start border-b border-slate-100">
         <div className="mb-6 transform hover:scale-110 transition-transform cursor-pointer">
-             <SchoolLogo />
+             <EscuelaInsignia size={64} />
         </div>
         <div className="hidden lg:block">
           <h1 className="text-sm font-black text-slate-900 uppercase tracking-[0.2em] leading-none">MatemApp 360°</h1>
@@ -69,15 +105,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <p className="px-4 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 hidden lg:block">Navegación Áurea</p>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const isActive = state.currentView === item.id;
             const isSpecial = item.id === 'quezadin' || item.id === 'challenges';
             const isPreview = item.id === 'parent_view';
+            const hasBadge = item.id === 'communication' && unreadMessagesCount > 0;
             
             return (
               <button
                 key={item.id}
-                onClick={() => onChangeView(item.id as ViewState)}
-                className={`w-full flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 group ${
+                onClick={() => handleViewChange(item.id as ViewState)}
+                className={`w-full flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 group relative ${
                   isActive 
                     ? (isPreview ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-100' : isSpecial ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'bg-slate-900 text-white shadow-xl shadow-slate-200')
                     : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
@@ -86,7 +123,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className={`p-2 rounded-xl flex items-center justify-center ${isActive ? 'bg-white/10' : 'bg-transparent'}`}>
                   <Icon size={18} />
                 </div>
-                <span className="hidden lg:block font-black text-[11px] uppercase tracking-widest">{item.label}</span>
+                <div className="flex-1 flex items-center justify-between hidden lg:flex">
+                  <span className="font-black text-[11px] uppercase tracking-widest">{item.label}</span>
+                  {hasBadge && (
+                    <span className="bg-red-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full animate-in zoom-in duration-300">
+                      {unreadMessagesCount}
+                    </span>
+                  )}
+                </div>
+                {hasBadge && (
+                  <div className="absolute top-3 right-3 lg:hidden w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                )}
               </button>
             );
           })}
@@ -95,11 +142,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="space-y-2">
           <p className="px-4 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em] mb-4 hidden lg:block">Niveles</p>
           {courses.map((course) => {
-            const isSelected = selectedCourse === course;
+            const isSelected = state.selectedCourse === course;
             return (
               <button
                 key={course}
-                onClick={() => onSelectCourse(course)}
+                onClick={() => handleCourseChange(course)}
                 className={`w-full flex items-center justify-between p-4 rounded-[18px] transition-all duration-300 group ${
                   isSelected ? 'bg-slate-50 text-slate-900' : 'text-slate-400 hover:bg-slate-50'
                 }`}

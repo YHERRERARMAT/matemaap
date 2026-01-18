@@ -1,17 +1,8 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, GraduationCap, UserCircle2, ArrowRight, AlertCircle, CheckCircle2, XCircle, Loader2, Shield } from 'lucide-react';
+import { ShieldCheck, GraduationCap, UserCircle2, ArrowRight, AlertCircle, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { Student } from '../types';
-
-const LoginLogo = () => (
-  <div className="relative flex items-center justify-center w-24 h-24 bg-white rounded-[32px] mx-auto shadow-2xl mb-8 transform hover:scale-105 transition-transform duration-500 ring-8 ring-white/5">
-    <div className="absolute inset-0 bg-slate-900 rounded-[32px] transform rotate-3 scale-95 opacity-5"></div>
-    <div className="relative z-10 flex flex-col items-center text-indigo-600">
-      <Shield size={40} className="mb-[-2px]" />
-      <span className="font-serif text-xl font-black tracking-tighter">LQ</span>
-    </div>
-  </div>
-);
+import { EscuelaInsignia } from './Insignia';
 
 interface LoginProps {
   onLogin: (rut: string) => void;
@@ -24,7 +15,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, students }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
 
-  // Validación de RUT chileno (Módulo 11)
   const validateRut = (rutStr: string) => {
     const clean = rutStr.replace(/[^0-9kK]/g, '').toUpperCase();
     if (clean.length < 8) return false;
@@ -84,7 +74,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin, students }) => {
   const handleLogin = async () => {
     const cleanInput = rut.replace(/[^0-9kK]/g, '').toUpperCase();
     
-    // Validar formato
     if (!validateRut(rut)) {
       setError('El RUT ingresado no tiene un formato válido.');
       setIsValid(false);
@@ -94,11 +83,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin, students }) => {
     setIsLoading(true);
     setError('');
 
-    // Simular un pequeño delay de red para feedback visual
     await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
-      // Verificar existencia (Profesor o Alumno)
       const isTeacher = cleanInput === '159770222';
       const isStudent = students.some(s => s.rut.replace(/[^0-9kK]/g, '').toUpperCase() === cleanInput);
 
@@ -116,13 +103,14 @@ export const Login: React.FC<LoginProps> = ({ onLogin, students }) => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decorative Elements */}
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-indigo-600/20 rounded-full blur-[120px] animate-pulse"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse [animation-delay:2s]"></div>
 
       <div className="w-full max-w-md z-10">
-        <div className="text-center mb-10">
-          <LoginLogo />
+        <div className="text-center mb-10 flex flex-col items-center">
+          <div className="mb-8 transform hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
+            <EscuelaInsignia size={100} />
+          </div>
           <h1 className="text-5xl font-black text-white tracking-tighter uppercase mb-2">MatemApp</h1>
           <p className="text-slate-400 font-medium tracking-wide uppercase text-[10px]">Escuela Las Quezadas • Tutoría QueZadin</p>
         </div>
