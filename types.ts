@@ -5,6 +5,41 @@ export enum UserRole {
   STUDENT = 'ALUMNO'
 }
 
+export type AIModelId = 
+  | 'gemini-3-flash-preview' 
+  | 'gemini-3-pro-preview' 
+  | 'gemini-2.5-flash-native-audio-preview-12-2025';
+
+export interface AIModelConfig {
+  id: AIModelId;
+  label: string;
+  description: string;
+  useCase: string;
+  color: string;
+  tier: 'Low' | 'Medium' | 'High';
+  isNew?: boolean;
+}
+
+export const AVAILABLE_MODELS: AIModelConfig[] = [
+  { 
+    id: 'gemini-3-pro-preview', 
+    label: 'Gemini 3 Pro', 
+    description: 'Razonamiento profundo', 
+    useCase: 'Problemas complejos y olimpiadas',
+    color: 'amber',
+    tier: 'High' 
+  },
+  { 
+    id: 'gemini-3-flash-preview', 
+    label: 'Gemini 3 Flash', 
+    description: 'Velocidad turbo', 
+    useCase: 'Consultas rápidas y definiciones',
+    color: 'indigo',
+    tier: 'Low', 
+    isNew: true 
+  },
+];
+
 export interface Student {
   id: string;
   rut: string; 
@@ -29,6 +64,8 @@ export interface Message {
   timestamp: Date;
   isAiGenerated?: boolean;
   isMine: boolean;
+  modelUsed?: string;
+  thoughtProcess?: string;
 }
 
 export interface Conversation {
@@ -46,7 +83,7 @@ export interface Announcement {
   content: string;
   date: string;
   category: 'Urgente' | 'General' | 'Evaluación';
-  grade?: string; // Nuevo: Para filtrar por curso
+  grade?: string;
 }
 
 export interface PlanningUnit {
@@ -58,7 +95,7 @@ export interface PlanningUnit {
   status: 'Completado' | 'En Progreso' | 'Pendiente';
   upcomingExamDate?: string;
   resources: string[];
-  grade?: string; // Nuevo: Para filtrar por curso
+  grade?: string;
 }
 
 export type ViewState = 'dashboard' | 'communication' | 'students' | 'planning' | 'quezadin' | 'challenges' | 'parent_view';

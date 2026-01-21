@@ -1,119 +1,44 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, BrainCircuit, User, ArrowUpRight, ExternalLink, Map, Compass, RefreshCw, Sparkles, X, BookOpen, MessageCircle, Volume2, Globe, List, Play, Camera, Image as ImageIcon } from 'lucide-react';
+import { Send, Bot, BrainCircuit, User, ArrowUpRight, Compass, RefreshCw, Sparkles, X, Volume2, Globe, Camera, ChevronDown, Check, Info, Lightbulb } from 'lucide-react';
 import { getAiTutorResponseStream, getSuggestedReplies, getAiTutorSpeech } from '../services/geminiService';
-
-const COURSES = ['4° Básico', '5° Básico', '6° Básico', '7° Básico', '8° Básico'];
-
-const STUDY_TOPICS: Record<string, string[]> = {
-  '4° Básico': ['Multiplicación y División', 'Fracciones iniciales', 'Patrones y Álgebra', 'Geometría plana'],
-  '5° Básico': ['Números de hasta 6 cifras', 'Fracciones y Decimales', 'Áreas y Perímetros', 'Ecuaciones de un paso'],
-  '6° Básico': ['Razones y Porcentajes', 'Álgebra y Funciones', 'Superficie y Volumen', 'Probabilidades'],
-  '7° Básico': ['Números Enteros', 'Potencias', 'Geometría 3D', 'Estadística'],
-  '8° Básico': ['Números Racionales', 'Teorema de Pitágoras', 'Ecuaciones e Inecuaciones', 'Funciones Lineales']
-};
+import { AVAILABLE_MODELS, AIModelId } from '../types';
 
 interface Message {
   id: string;
   role: 'user' | 'bot';
   text: string;
   timestamp: Date;
-  isGuidedStep?: boolean;
   sources?: any[];
-  imageUrl?: string;
-}
-
-interface ChatState {
-  [key: string]: Message[];
+  modelUsed?: string;
+  isThinking?: boolean;
 }
 
 export const QueZadinChat: React.FC<{course?: string; isLocked?: boolean}> = ({ course: initialCourse, isLocked = false }) => {
   const [activeCourse, setActiveCourse] = useState(initialCourse || '5° Básico');
-  const [chatHistories, setChatHistories] = useState<ChatState>(
-    COURSES.reduce((acc, c) => ({
-      ...acc,
-      [c]: [{ 
-        id: '1', 
-        role: 'bot', 
-        text: `¡Hola! Soy QueZadin. ¿Qué desafío de matemáticas de **${c}** vamos a conquistar hoy?`,
-        timestamp: new Date()
-      }]
-    }), {})
-  );
-  
+  const [selectedModel, setSelectedModel] = useState<AIModelId>('gemini-3-flash-preview');
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  
   const scrollRef = useRef<HTMLDivElement>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isGuidedMode, setIsGuidedMode] = useState(false);
-  const [showTopicPicker, setShowTopicPicker] = useState(false);
-  const [currentTopic, setCurrentTopic] = useState<string | null>(null);
-
-  const messages = chatHistories[activeCourse] || [];
+  useEffect(() => {
+    setMessages([
+      { 
+        id: '1', 
+        role: 'bot', 
+        text: `¡Hola! Soy QueZadin. Estoy listo para ayudarte con las matemáticas de **${activeCourse}**. ¿Qué desafío tenemos hoy?`,
+        timestamp: new Date()
+      }
+    ]);
+  }, [activeCourse]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
-
-  const handleVisualInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // En una implementación real enviaríamos esto a Gemini Vision
-      handleSend(`He subido una imagen de mi cuaderno para que me ayudes con el ejercicio.`);
-    }
-  };
-
-  const playSpeech = async (msgId: string, text: string) => {
-    if (isSpeaking === msgId) {
-      audioRef.current?.pause();
-      setIsSpeaking(null);
-      return;
-    }
-    
-    setIsSpeaking(msgId);
-    const base64Audio = await getAiTutorSpeech(text);
-    if (base64Audio) {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-      const decodeBase64 = (base64: string) => {
-        const binaryString = atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        return bytes;
-      };
-
-      const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number) => {
-        const dataInt16 = new Int16Array(data.buffer);
-        const frameCount = dataInt16.length / numChannels;
-        const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-        for (let channel = 0; channel < numChannels; channel++) {
-          const channelData = buffer.getChannelData(channel);
-          for (let i = 0; i < frameCount; i++) {
-            channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-          }
-        }
-        return buffer;
-      };
-
-      const audioBuffer = await decodeAudioData(decodeBase64(base64Audio), audioContext, 24000, 1);
-      const source = audioContext.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      source.onended = () => setIsSpeaking(null);
-      source.start();
-    } else {
-      setIsSpeaking(null);
-    }
-  };
 
   const handleSend = async (overrideInput?: string) => {
     const textToSend = overrideInput || input;
@@ -123,237 +48,209 @@ export const QueZadinChat: React.FC<{course?: string; isLocked?: boolean}> = ({ 
     setInput('');
     setIsLoading(true);
 
-    const userMsg: Message = { 
-      id: Date.now().toString(), 
-      role: 'user', 
-      text: textToSend, 
-      timestamp: new Date(),
-      isGuidedStep: isGuidedMode
-    };
-    
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', text: textToSend, timestamp: new Date() };
     const botMsgId = (Date.now() + 1).toString();
-    const botMsg: Message = { id: botMsgId, role: 'bot', text: '', timestamp: new Date(), isGuidedStep: isGuidedMode, sources: [] };
+    const modelConfig = AVAILABLE_MODELS.find(m => m.id === selectedModel);
+    
+    const botMsg: Message = { 
+      id: botMsgId, 
+      role: 'bot', 
+      text: '', 
+      timestamp: new Date(), 
+      modelUsed: modelConfig?.label,
+      isThinking: selectedModel.includes('pro') 
+    };
 
-    setChatHistories(prev => ({
-      ...prev,
-      [activeCourse]: [...(prev[activeCourse] || []), userMsg, botMsg]
-    }));
+    setMessages(prev => [...prev, userMsg, botMsg]);
 
     try {
       let fullResponse = "";
       let allSources: any[] = [];
+      const stream = getAiTutorResponseStream(activeCourse, textToSend, selectedModel);
       
-      const stream = getAiTutorResponseStream(activeCourse, textToSend);
       getSuggestedReplies(activeCourse, textToSend).then(setSuggestions);
 
       for await (const chunk of stream) {
         fullResponse += chunk.text;
-        if (chunk.sources) {
-          const uniqueSources = chunk.sources.filter((s: any) => 
-            !allSources.some((existing: any) => existing.web?.uri === s.web?.uri)
-          );
-          allSources = [...allSources, ...uniqueSources];
-        }
+        if (chunk.sources) allSources = [...allSources, ...chunk.sources];
         
-        setChatHistories(prev => {
-          const currentHistory = [...prev[activeCourse]];
-          const lastIdx = currentHistory.length - 1;
-          if (currentHistory[lastIdx].id === botMsgId) {
-            currentHistory[lastIdx] = { 
-              ...currentHistory[lastIdx], 
-              text: fullResponse,
-              sources: allSources
-            };
+        setMessages(prev => {
+          const newMessages = [...prev];
+          const idx = newMessages.findIndex(m => m.id === botMsgId);
+          if (idx !== -1) {
+            newMessages[idx] = { ...newMessages[idx], text: fullResponse, sources: allSources, isThinking: false };
           }
-          return { ...prev, [activeCourse]: currentHistory };
+          return newMessages;
         });
       }
     } catch (error) {
-      console.error("Stream error", error);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const renderMessageContent = (msg: Message) => {
-    const { text, role, sources } = msg;
-    const isBot = role === 'bot';
-    
-    return (
-      <div className="space-y-4">
-        <div className={`prose prose-sm max-w-none font-medium leading-relaxed ${isBot ? 'text-white' : 'text-white'}`}>
-          {text.split('\n').map((line, i) => (
-            <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
-          ))}
-        </div>
-
-        {isBot && sources && sources.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-white/20">
-            <div className="flex items-center gap-2 mb-3">
-              <Globe size={14} className="text-purple-200" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-purple-100">Búsqueda Inteligente</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {sources.map((src, i) => (
-                src.web && (
-                  <a key={i} href={src.web.uri} target="_blank" rel="noopener" className="flex items-center justify-between p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all group backdrop-blur-sm border border-white/10">
-                    <span className="text-[10px] font-bold text-white truncate pr-4">{src.web.title || 'Ver referencia'}</span>
-                    <ArrowUpRight size={14} className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </a>
-                )
-              ))}
-            </div>
-          </div>
-        )}
-
-        {isBot && text.length > 10 && (
-          <button 
-            onClick={() => playSpeech(msg.id, text)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm ${
-              isSpeaking === msg.id 
-                ? 'bg-white text-purple-600 animate-pulse' 
-                : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-          >
-            {isSpeaking === msg.id ? <RefreshCw size={14} className="animate-spin" /> : <Volume2 size={14} />} 
-            {isSpeaking === msg.id ? 'Hablando...' : 'Escuchar QueZadin'}
-          </button>
-        )}
-      </div>
-    );
-  };
+  const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModel);
 
   return (
-    <div className={`flex flex-col h-full overflow-hidden relative transition-all duration-700 ${isGuidedMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      {/* Header */}
-      <div className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-6 py-4 z-30 flex items-center justify-between shadow-sm">
+    <div className="flex flex-col h-full overflow-hidden bg-slate-50 relative">
+      {/* Header con Selector Áureo */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm z-30">
         <div className="flex items-center gap-4">
-           <div className={`w-12 h-12 rounded-[20px] flex items-center justify-center text-white shadow-xl ${isGuidedMode ? 'bg-purple-600 ring-4 ring-purple-100' : 'bg-slate-900 shadow-slate-200'}`}>
-              <BrainCircuit size={24} />
+           <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg transition-colors duration-500 ${selectedModel.includes('pro') ? 'bg-amber-500' : 'bg-indigo-600'}`}>
+              <BrainCircuit size={20} />
            </div>
-           <div className="text-left">
-              <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Tutor de IA</h2>
-              <span className="text-lg font-black text-slate-900 tracking-tighter">QueZadin Turbo</span>
+           <div className="relative">
+              <button 
+                onClick={() => setShowModelSelector(!showModelSelector)}
+                className="flex flex-col items-start px-2 py-1 hover:bg-slate-50 rounded-lg transition-all"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{currentModel?.label}</span>
+                  <ChevronDown size={12} className={`text-slate-400 transition-transform ${showModelSelector ? 'rotate-180' : ''}`} />
+                </div>
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">{currentModel?.description}</span>
+              </button>
+              
+              {showModelSelector && (
+                <div className="absolute top-full left-0 mt-3 w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="p-4 bg-slate-50 border-b border-slate-100">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Selecciona el Cerebro de QueZadin</p>
+                  </div>
+                  {AVAILABLE_MODELS.map(model => (
+                    <button
+                      key={model.id}
+                      onClick={() => { setSelectedModel(model.id); setShowModelSelector(false); }}
+                      className={`w-full p-5 flex items-start gap-4 hover:bg-slate-50 transition-all text-left ${selectedModel === model.id ? 'bg-indigo-50/30' : ''}`}
+                    >
+                      <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${model.id.includes('pro') ? 'bg-amber-500' : 'bg-indigo-600'}`} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{model.label}</span>
+                          {model.isNew && <span className="bg-emerald-500 text-[7px] font-black px-1.5 py-0.5 rounded text-white uppercase">Nuevo</span>}
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">{model.useCase}</p>
+                      </div>
+                      {selectedModel === model.id && <Check size={14} className="ml-auto text-indigo-600" />}
+                    </button>
+                  ))}
+                </div>
+              )}
            </div>
         </div>
-        {!isLocked && (
-          <button onClick={() => setShowTopicPicker(true)} className="px-5 py-2.5 bg-purple-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-purple-100 flex items-center gap-2 hover:bg-purple-700 transition-all active:scale-95">
-            <Compass size={14} /> Misiones de Estudio
-          </button>
-        )}
+        
+        <div className="flex items-center gap-4">
+           {!isLocked && (
+             <button className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors">
+                <Info size={14} /> Guía de Uso
+             </button>
+           )}
+           <button className="bg-slate-900 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 flex items-center gap-2 active:scale-95 transition-all">
+              <Compass size={14} /> Misiones
+           </button>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 custom-scrollbar relative z-10">
-        {messages.map((msg, index) => {
+      {/* Area de Chat */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 custom-scrollbar relative">
+        {messages.map((msg) => {
           const isBot = msg.role === 'bot';
-          const isLast = index === messages.length - 1;
           return (
-            <div key={msg.id} className={`flex flex-col ${isBot ? 'items-start' : 'items-end'} animate-in fade-in slide-in-from-bottom-6 duration-500 ease-out`}>
-              <div className={`max-w-[85%] md:max-w-[70%] flex gap-4 ${isBot ? 'flex-row' : 'flex-row-reverse'}`}>
-                <div className={`w-10 h-10 md:w-11 md:h-11 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 self-end ${isBot ? 'bg-purple-600 shadow-purple-200' : 'bg-blue-600 shadow-blue-200'}`}>
-                  {isBot ? <Bot size={22} /> : <User size={22} />}
-                </div>
-                <div className={`flex flex-col gap-2 ${isBot ? 'items-start' : 'items-end'}`}>
-                  <div className={`px-6 py-4 shadow-2xl transition-all duration-500 relative ${
-                    isBot 
-                      ? 'bg-purple-600 text-white rounded-[32px] rounded-bl-none shadow-purple-100' 
-                      : 'bg-blue-600 text-white rounded-[32px] rounded-br-none shadow-blue-100'
+            <div key={msg.id} className={`flex flex-col ${isBot ? 'items-start' : 'items-end'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+              <div className={`max-w-[85%] md:max-w-[70%] rounded-[32px] p-7 shadow-sm relative ${
+                isBot 
+                  ? 'bg-white text-slate-800 border border-slate-100 rounded-bl-none' 
+                  : 'bg-indigo-600 text-white rounded-br-none shadow-xl shadow-indigo-100'
+              }`}>
+                {isBot && msg.modelUsed && (
+                  <div className={`absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border border-white/20 shadow-sm ${
+                    msg.modelUsed.includes('Pro') ? 'bg-amber-500 text-white' : 'bg-slate-800 text-indigo-300'
                   }`}>
-                    {renderMessageContent(msg)}
+                    {msg.modelUsed}
                   </div>
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest px-2">
-                    {isBot ? 'QueZadin' : 'Alumno'} • {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  
-                  {isBot && isLast && suggestions.length > 0 && !isLoading && !isGuidedMode && (
-                    <div className="flex flex-wrap gap-3 pt-4 animate-in fade-in slide-in-from-top-4 duration-700 delay-300">
-                      {suggestions.map((s, idx) => (
-                        <button 
-                          key={idx} 
-                          onClick={() => handleSend(s)} 
-                          className="px-6 py-3 bg-white border-2 border-slate-100 text-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-purple-600 hover:text-purple-600 hover:bg-purple-50 hover:shadow-xl hover:shadow-purple-100 transition-all duration-300 active:scale-95 flex items-center gap-2 group whitespace-nowrap shadow-sm"
-                        >
-                          <Sparkles size={12} className="text-purple-400 group-hover:text-purple-600 group-hover:rotate-12 transition-transform" />
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                )}
+
+                {isBot && msg.isThinking && (
+                  <div className="flex items-center gap-3 mb-4 p-3 bg-amber-50 rounded-2xl border border-amber-100 animate-pulse">
+                    <RefreshCw size={14} className="animate-spin text-amber-600" />
+                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Razonando Pasos Matemáticos...</span>
+                  </div>
+                )}
+
+                <div className="prose prose-sm max-w-none text-sm font-medium leading-relaxed">
+                  {msg.text || (isBot && !msg.isThinking && <div className="h-4 w-24 bg-slate-100 animate-pulse rounded"></div>)}
                 </div>
+
+                {isBot && msg.sources && msg.sources.length > 0 && (
+                   <div className="mt-6 pt-4 border-t border-slate-50 space-y-2">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Recursos de Refuerzo:</p>
+                      {msg.sources.map((s, i) => s.web && (
+                        <a key={i} href={s.web.uri} target="_blank" rel="noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl hover:bg-indigo-50 transition-all border border-transparent hover:border-indigo-100 group">
+                          <span className="text-[11px] font-bold text-slate-700 truncate max-w-[85%] group-hover:text-indigo-600">{s.web.title}</span>
+                          <ArrowUpRight size={14} className="text-slate-300 group-hover:text-indigo-600" />
+                        </a>
+                      ))}
+                   </div>
+                )}
               </div>
             </div>
           );
         })}
-        {isLoading && (
-          <div className="flex items-center gap-3 animate-in fade-in duration-500">
-            <div className="w-10 h-10 rounded-2xl bg-purple-100 flex items-center justify-center text-purple-600">
-              <RefreshCw size={20} className="animate-spin" />
-            </div>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest animate-pulse">Pensando en tu respuesta...</p>
+        {isLoading && !messages[messages.length-1].text && (
+          <div className="flex items-center gap-3 text-indigo-600 animate-pulse">
+            <Sparkles size={16} />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">QueZadin está pensando...</span>
           </div>
         )}
-        <div ref={scrollRef} className="h-4" />
+        <div ref={scrollRef} />
       </div>
 
-      {/* Footer del Chat con botón de Cámara */}
-      <div className="p-4 md:p-8 shrink-0 z-30 bg-white/95 backdrop-blur-2xl border-t border-slate-200/60">
-        <div className="max-w-4xl mx-auto flex gap-4 items-end">
-          {/* Cámara / Visual Input */}
-          <button 
-            onClick={handleVisualInput}
-            className="w-14 h-14 shrink-0 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90 shadow-inner group"
-          >
-            <Camera size={24} className="group-hover:rotate-12 transition-transform" />
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-          </button>
+      {/* Input Area */}
+      <div className="p-6 md:p-10 bg-white border-t border-slate-100">
+        <div className="max-w-4xl mx-auto space-y-6">
+          {suggestions.length > 0 && !isLoading && (
+            <div className="flex flex-wrap gap-2 animate-in fade-in duration-500">
+               {suggestions.map((s, idx) => (
+                 <button 
+                  key={idx} 
+                  onClick={() => handleSend(s)}
+                  className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:border-indigo-200 hover:text-indigo-600 hover:bg-white transition-all shadow-sm"
+                 >
+                   {s}
+                 </button>
+               ))}
+            </div>
+          )}
 
-          <div className="flex-1 relative bg-slate-100 border-2 border-slate-100 focus-within:border-purple-400 focus-within:bg-white rounded-[28px] overflow-hidden transition-all shadow-inner">
-            <textarea 
-              value={input} onChange={(e) => setInput(e.target.value)} 
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }}} 
-              placeholder="Pregúntame lo que sea o sube una foto..." 
-              className="w-full bg-transparent border-none focus:ring-0 text-sm px-7 py-5 resize-none font-medium placeholder:text-slate-400" 
-              rows={1} 
-            />
+          <div className="flex gap-4 items-end">
+            <button className="w-14 h-14 shrink-0 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-indigo-50 hover:text-indigo-600 transition-all border border-slate-100">
+              <Camera size={24} />
+            </button>
+            <div className="flex-1 bg-slate-50 rounded-[28px] border-2 border-transparent focus-within:border-indigo-500 focus-within:bg-white transition-all duration-500 shadow-inner px-6 py-2">
+              <textarea 
+                value={input} 
+                onChange={(e) => setInput(e.target.value)} 
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }}}
+                placeholder="Pregúntale a QueZadin sobre fracciones, geometría..." 
+                className="w-full bg-transparent border-none focus:ring-0 text-[15px] font-medium py-3 resize-none max-h-32" 
+                rows={1} 
+              />
+            </div>
+            <button 
+              onClick={() => handleSend()}
+              disabled={!input.trim() || isLoading}
+              className={`w-14 h-14 shrink-0 rounded-[24px] flex items-center justify-center text-white shadow-2xl transition-all active:scale-90 ${
+                !input.trim() || isLoading ? 'bg-slate-200 text-slate-400' : 'bg-indigo-600 shadow-indigo-200'
+              }`}
+            >
+              <Send size={24} className="transform -rotate-12 translate-x-0.5" />
+            </button>
           </div>
-          <button 
-            onClick={() => handleSend()} 
-            disabled={!input.trim() || isLoading} 
-            className="w-16 h-16 shrink-0 bg-purple-600 rounded-[24px] text-white flex items-center justify-center shadow-2xl shadow-purple-200 hover:bg-purple-700 transition-all active:scale-90 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {isLoading ? <RefreshCw size={24} className="animate-spin" /> : <Send size={24} />}
-          </button>
+          <p className="text-center text-[9px] text-slate-400 font-bold uppercase tracking-[0.4em]">
+            MatemApp 360° • Potenciado por {currentModel?.label}
+          </p>
         </div>
-        <p className="text-center text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-4">MatemApp 360° • Tutoría Inteligente</p>
       </div>
-
-      {showTopicPicker && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[100] flex items-center justify-center p-6 animate-in fade-in duration-500">
-          <div className="bg-white rounded-[40px] w-full max-w-xl shadow-3xl overflow-hidden text-left animate-in zoom-in-95 duration-500">
-            <div className="p-10 bg-purple-600 text-white relative">
-              <button onClick={() => setShowTopicPicker(false)} className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors"><X size={24}/></button>
-              <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Misiones de Estudio</h3>
-              <p className="text-purple-100 text-xs font-bold uppercase tracking-widest opacity-80 leading-relaxed">Elige un tema y QueZadin te guiará paso a paso hacia la maestría.</p>
-            </div>
-            <div className="p-10 grid grid-cols-1 gap-4 bg-slate-50">
-              {STUDY_TOPICS[activeCourse]?.map((topic, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => {
-                    setShowTopicPicker(false);
-                    setIsGuidedMode(true);
-                    handleSend(`¡Vamos! Quiero dominar la misión de **${topic}**.`);
-                  }} 
-                  className="p-6 bg-white border-2 border-slate-100 rounded-3xl text-left hover:border-purple-300 hover:bg-purple-50 group transition-all shadow-sm flex items-center justify-between"
-                >
-                  <h4 className="font-black text-slate-800 text-sm uppercase tracking-tight group-hover:text-purple-700">{topic}</h4>
-                  <Play size={16} className="text-slate-300 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
