@@ -23,7 +23,6 @@ export async function* getAiTutorResponseStream(course: string, question: string
     };
 
     if (isPro) {
-      // Reservamos presupuesto para razonamiento profundo en el modelo Pro
       config.thinkingConfig = { thinkingBudget: 8000 };
     }
 
@@ -39,7 +38,6 @@ export async function* getAiTutorResponseStream(course: string, question: string
         yield { 
           text: chunk.text, 
           sources: sources,
-          // En futuras versiones del SDK, aquí extraeríamos los thinking tokens si estuvieran disponibles en el stream
         };
       }
     }
@@ -48,6 +46,84 @@ export async function* getAiTutorResponseStream(course: string, question: string
     yield { text: "⚠️ Mi red neuronal está experimentando una sobrecarga en este modelo. ¿Probamos con la versión Flash?", sources: [] };
   }
 }
+
+export const generateAiEvaluation = async (course: string, topic: string, type: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `Genera una evaluación técnica de matemáticas para ${course}. 
+  TEMA: ${topic}. TIPO: ${type}.
+  Incluye: 
+  1. 5 preguntas de selección múltiple con 4 opciones.
+  2. 2 problemas de aplicación del mundo real.
+  3. Una pauta de corrección al final con los indicadores de logro.
+  Usa Markdown para dar formato profesional.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: { temperature: 0.8 }
+    });
+    return response.text || "No se pudo generar la evaluación.";
+  } catch (error) {
+    return "Error en la conexión con la red neuronal de QueZadin.";
+  }
+};
+
+export const generateAiLearningSequence = async (course: string, unit: string, objective: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `Genera una secuencia de aprendizaje pedagógica para ${course}.
+  UNIDAD: ${unit}. OBJETIVO (OA): ${objective}.
+  Diseña 3 momentos de clase: 
+  - Inicio (Activación de conocimientos).
+  - Desarrollo (Actividad central y modelamiento).
+  - Cierre (Ticket de salida y metacognición).
+  Propón también una estrategia diferenciada para alumnos PIE.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+      config: { temperature: 0.7 }
+    });
+    return response.text || "No se pudo generar la secuencia.";
+  } catch (error) {
+    return "Error en la conexión con la red neuronal de QueZadin.";
+  }
+};
+
+export const processStudentDocument = async (base64Data: string, mimeType: string): Promise<Partial<Student>[]> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const prompt = `Analiza este documento y extrae una lista de estudiantes. 
+  Para cada estudiante identifica: NOMBRE COMPLETO, RUT y CURSO (debe ser uno de estos: 4° Básico, 5° Básico, 6° Básico, 7° Básico, 8° Básico).
+  Si el curso no está explícito para cada alumno pero se menciona un curso general en el documento, asígnales ese.
+  Formatea el RUT con puntos y guion.
+  Responde ÚNICAMENTE con un array JSON de objetos con las llaves: name, rut, grade.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        },
+        { text: prompt }
+      ],
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    const text = response.text || "[]";
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Error processing document with Gemini:", error);
+    throw new Error("No pude procesar el documento. Asegúrate de que el archivo sea legible.");
+  }
+};
 
 export const getAiTutorSpeech = async (text: string): Promise<string | undefined> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });

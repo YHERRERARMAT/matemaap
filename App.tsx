@@ -8,7 +8,10 @@ import { Planning } from './components/Planning';
 import { ParentPortal } from './components/ParentPortal';
 import { QueZadinChat } from './components/QueZadinChat';
 import { Challenges } from './components/Challenges';
+import { MathGames } from './components/MathGames';
 import { Login } from './components/Login';
+import { DirectorPanel } from './components/DirectorPanel';
+import { ResourceGenerator } from './components/ResourceGenerator';
 import { EscuelaInsignia } from './components/Insignia';
 import { ViewState, UserRole, AuthState, Student, Conversation } from './types';
 import { STUDENTS as INITIAL_STUDENTS, INITIAL_CONVERSATIONS } from './constants';
@@ -37,18 +40,28 @@ function App() {
 
   const handleLogin = (rutToLogin: string) => {
     const cleanedInput = cleanRut(rutToLogin);
+    
+    // Director Login
+    if (cleanedInput === '180011186') {
+      setAuth({ user: { name: 'Director F-413', role: UserRole.DIRECTOR }, role: UserRole.DIRECTOR });
+      setCurrentView('director_panel');
+      return;
+    }
+
+    // Teacher Login
     if (cleanedInput === '159770222') {
       setAuth({ user: { name: 'Yonathan Herrera', role: UserRole.TEACHER }, role: UserRole.TEACHER });
       setCurrentView('dashboard');
       return;
     }
     
+    // Student Login
     const student = students.find(s => cleanRut(s.rut) === cleanedInput);
     if (student) {
       setAuth({ user: student, role: UserRole.STUDENT });
       setSelectedCourse(student.grade);
     } else {
-      throw new Error('El RUT no se encuentra registrado en el sistema oficial.');
+      throw new Error('El RUT no se encuentra registrado en el establecimiento.');
     }
   };
 
@@ -73,7 +86,7 @@ function App() {
           <h1 className="text-3xl font-black text-white tracking-tighter uppercase">MatemApp 360°</h1>
           <div className="flex items-center justify-center gap-3 text-indigo-400">
             <Loader2 className="animate-spin" size={18} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Hidratando Base de Datos...</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Conectando a Red F-413...</span>
           </div>
         </div>
       </div>
@@ -86,7 +99,9 @@ function App() {
 
   const renderView = () => {
     switch (currentView) {
+      case 'director_panel': return <DirectorPanel students={students} />;
       case 'dashboard': return <Dashboard selectedCourse={selectedCourse} students={students} />;
+      case 'resource_generator': return <ResourceGenerator selectedCourse={selectedCourse} />;
       case 'communication': return (
         <Communication 
           selectedCourse={selectedCourse} 
@@ -99,37 +114,19 @@ function App() {
       case 'students': return <StudentList students={students} setStudents={setStudents} />;
       case 'planning': return <Planning />;
       case 'quezadin': return <QueZadinChat course={selectedCourse} />;
+      case 'math_arena': return <MathGames selectedCourse={selectedCourse} students={students} isTeacherView={true} />;
       case 'challenges': return <Challenges />;
       case 'parent_view':
         return (
           <div className="bg-slate-900 min-h-full flex flex-col items-center justify-center p-8 overflow-y-auto">
-            <div className="max-w-xl w-full text-center mb-10">
-               <div className="inline-flex items-center gap-3 px-6 py-2 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
-                  <Smartphone size={14} /> Modo Espejo Docente Activo
-               </div>
-               <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Vista de Apoderado</h2>
-               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">
-                 {previewStudent ? `Previsualizando la experiencia de ${previewStudent.name}` : 'Cargando datos de alumno...'}
-               </p>
-            </div>
-
             <div className="relative mx-auto border-slate-800 bg-slate-800 border-[14px] rounded-[3rem] h-[750px] w-[360px] shadow-2xl ring-1 ring-slate-700 overflow-hidden">
-               <div className="h-[32px] w-[3px] bg-slate-800 absolute -left-[17px] top-[72px] rounded-l-lg"></div>
-               <div className="h-[46px] w-[3px] bg-slate-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
-               <div className="h-[46px] w-[3px] bg-slate-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
-               <div className="h-[64px] w-[3px] bg-slate-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
-               
-               <div className="absolute top-0 inset-x-0 h-7 flex justify-center z-[70] pointer-events-none">
-                  <div className="bg-slate-900 w-32 h-6 rounded-b-2xl"></div>
-               </div>
-
                <div className="h-full w-full bg-white overflow-hidden relative">
                   {previewStudent && <ParentPortal student={previewStudent} onLogout={() => setCurrentView('dashboard')} />}
                </div>
             </div>
           </div>
         );
-      default: return <Dashboard selectedCourse={selectedCourse} students={students} />;
+      default: return auth.role === UserRole.DIRECTOR ? <DirectorPanel students={students} /> : <Dashboard selectedCourse={selectedCourse} students={students} />;
     }
   };
 

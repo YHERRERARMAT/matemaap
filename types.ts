@@ -2,7 +2,8 @@
 export enum UserRole {
   TEACHER = 'PROFESOR',
   PARENT = 'APODERADO',
-  STUDENT = 'ALUMNO'
+  STUDENT = 'ALUMNO',
+  DIRECTOR = 'DIRECTOR'
 }
 
 export type AIModelId = 
@@ -98,9 +99,9 @@ export interface PlanningUnit {
   grade?: string;
 }
 
-export type ViewState = 'dashboard' | 'communication' | 'students' | 'planning' | 'quezadin' | 'challenges' | 'parent_view';
+export type ViewState = 'dashboard' | 'communication' | 'students' | 'planning' | 'quezadin' | 'challenges' | 'parent_view' | 'math_arena' | 'director_panel' | 'resource_generator';
 
 export interface AuthState {
-  user: Student | { name: string; role: UserRole.TEACHER } | null;
+  user: Student | { name: string; role: UserRole.TEACHER | UserRole.DIRECTOR } | null;
   role: UserRole | null;
 }

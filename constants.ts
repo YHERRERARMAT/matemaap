@@ -4,7 +4,7 @@ import { Student, Conversation, Announcement, PlanningUnit } from './types';
 export const COURSES = ['4° Básico', '5° Básico', '6° Básico', '7° Básico', '8° Básico'];
 
 export const STUDENTS: Student[] = [
-  // 4° BÁSICO
+  // 4° BÁSICO (Página 1)
   { id: 's4-1', rut: '25.381.370-9', name: 'VALENTÍN MANUEL NÚÑEZ LINEROS', grade: '4° Básico', attendance: 95, averageScore: 6.2, parentName: 'Apoderado Núñez', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=1' },
   { id: 's4-2', rut: '25.606.537-1', name: 'SANTIAGO IGNACIO AHUMADA DURÁN', grade: '4° Básico', attendance: 92, averageScore: 5.8, parentName: 'Apoderado Ahumada', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=2' },
   { id: 's4-3', rut: '25.727.182-K', name: 'JULIETA VALENTINA DÍAZ FARÍAS', grade: '4° Básico', attendance: 98, averageScore: 6.9, parentName: 'Apoderado Díaz', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=3' },
@@ -16,7 +16,7 @@ export const STUDENTS: Student[] = [
   { id: 's4-9', rut: '25.696.689-1', name: 'JULIÁN IGNACIO MARÍN PAVEZ', grade: '4° Básico', attendance: 85, averageScore: 4.2, parentName: 'Apoderado Marín', parentEmail: '', parentPhone: '', isPIE: true, avatar: 'https://picsum.photos/100/100?random=9' },
   { id: 's4-10', rut: '25.433.801-K', name: 'DAMIÁN ALEJANDRO MEDINA BARRA', grade: '4° Básico', attendance: 90, averageScore: 5.9, parentName: 'Apoderado Medina', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=10' },
 
-  // 5° BÁSICO
+  // 5° BÁSICO (Página 1 y 3)
   { id: 's5-1', rut: '25.602.702-K', name: 'ALISON RENATA RAMÍREZ SÁNCHEZ', grade: '5° Básico', attendance: 98, averageScore: 6.8, parentName: 'Elena Martínez', parentEmail: 'elena.m@mail.com', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=11' },
   { id: 's5-2', rut: '24.733.764-4', name: 'JANETTE EMILIA ASTETE ASTETE', grade: '5° Básico', attendance: 87, averageScore: 5.4, parentName: 'Apoderado Astete', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=12' },
   { id: 's5-3', rut: '25.003.234-K', name: 'ANAÍS ISABEL SANDOVAL GALAZ', grade: '5° Básico', attendance: 92, averageScore: 6.3, parentName: 'Apoderado Sandoval', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=13' },
@@ -28,10 +28,10 @@ export const STUDENTS: Student[] = [
   { id: 's5-9', rut: '24.960.910-2', name: 'SOPHIA CATHALINA ROSALES FARÍAS', grade: '5° Básico', attendance: 90, averageScore: 5.8, parentName: 'Apoderado Rosales', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=19' },
   { id: 's5-10', rut: '25.275.272-2', name: 'ELIAN JESÚS ASTETE ASTETE', grade: '5° Básico', attendance: 94, averageScore: 6.4, parentName: 'Apoderado Astete', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=20' },
 
-  // 6° BÁSICO
+  // 6° BÁSICO (Página 3 y 5)
   { id: 's6-1', rut: '24.487.177-1', name: 'CRISTÓBAL JESÚS REYES VERGARA', grade: '6° Básico', attendance: 96, averageScore: 6.2, parentName: 'Apoderado Reyes', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=21' },
   { id: 's6-2', rut: '24.863.461-8', name: 'DOMINIQUE JESARELI ARENAS OYARCE', grade: '6° Básico', attendance: 85, averageScore: 4.6, parentName: 'Apoderado Arenas', parentEmail: '', parentPhone: '', isPIE: true, avatar: 'https://picsum.photos/100/100?random=22' },
-  { id: 's6-3', rut: '24.851.160-6', name: 'MAITE ANTONELLA ARIAS RIQUELME', grade: '6° Básico', attendance: 92, averageScore: 5.9, parentName: 'Apoderado Arias', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=23' },
+  { id: 's6-3', rut: '24.851.606-2', name: 'MAITE ANTONELLA ARIAS RIQUELME', grade: '6° Básico', attendance: 92, averageScore: 5.9, parentName: 'Apoderado Arias', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=23' },
   { id: 's6-4', rut: '24.709.568-3', name: 'MARÍA PÍA CARVAJAL TOBAR', grade: '6° Básico', attendance: 98, averageScore: 6.9, parentName: 'Apoderado Carvajal', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=24' },
   { id: 's6-5', rut: '24.775.985-9', name: 'JOSEMANUEL MARTÍN CASTRO ROMÁN', grade: '6° Básico', attendance: 88, averageScore: 5.1, parentName: 'Apoderado Castro', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=25' },
   { id: 's6-6', rut: '24.712.798-4', name: 'MANUEL AGUSTÍN DÍAZ LOBOS', grade: '6° Básico', attendance: 93, averageScore: 6.3, parentName: 'Apoderado Díaz', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=26' },
@@ -39,8 +39,9 @@ export const STUDENTS: Student[] = [
   { id: 's6-8', rut: '24.798.099-7', name: 'JULIETA PEÑA GÓMEZ', grade: '6° Básico', attendance: 95, averageScore: 6.6, parentName: 'Apoderado Peña', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=28' },
   { id: 's6-9', rut: '24.827.762-9', name: 'BRUNO ESTEBAN PIÑA JARA', grade: '6° Básico', attendance: 89, averageScore: 5.0, parentName: 'Apoderado Piña', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=29' },
   { id: 's6-10', rut: '24.671.863-6', name: 'CONSTANZA PASCAL ACEVEDO VIDAL', grade: '6° Básico', attendance: 97, averageScore: 6.4, parentName: 'Apoderado Acevedo', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=30' },
+  { id: 's6-11', rut: '24.745.679-1', name: 'LORENZO DAVID AHUMADA DURÁN', grade: '6° Básico', attendance: 94, averageScore: 5.7, parentName: 'Apoderado Ahumada', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=51' },
 
-  // 7° BÁSICO
+  // 7° BÁSICO (Página 5 y 7)
   { id: 's7-1', rut: '24.512.047-8', name: 'RICARDO ALONSO BRAVO PIÑA', grade: '7° Básico', attendance: 93, averageScore: 5.6, parentName: 'Apoderado Bravo', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=31' },
   { id: 's7-2', rut: '24.367.229-5', name: 'FLORENCIA ANTONIA ALFARO PIZARRO', grade: '7° Básico', attendance: 96, averageScore: 6.7, parentName: 'Apoderado Alfaro', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=32' },
   { id: 's7-3', rut: '24.349.635-7', name: 'SANTIAGO ISMAEL ASTORGA ESPINOZA', grade: '7° Básico', attendance: 91, averageScore: 5.8, parentName: 'Apoderado Astorga', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=33' },
@@ -51,8 +52,10 @@ export const STUDENTS: Student[] = [
   { id: 's7-8', rut: '24.519.693-8', name: 'VICENTE BALTAZAR MENA TORREJÓN', grade: '7° Básico', attendance: 92, averageScore: 5.9, parentName: 'Apoderado Mena', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=38' },
   { id: 's7-9', rut: '24.448.895-1', name: 'CATALINA ANDREA PÉREZ REYES', grade: '7° Básico', attendance: 97, averageScore: 6.6, parentName: 'Apoderado Pérez', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=39' },
   { id: 's7-10', rut: '24.327.901-1', name: 'JULIÁN IGNACIO RIVERA RAMÍREZ', grade: '7° Básico', attendance: 90, averageScore: 5.3, parentName: 'Apoderado Rivera', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=40' },
+  { id: 's7-11', rut: '24.432.968-3', name: 'JOSEFA SHAKG TOBAR GAMBOA', grade: '7° Básico', attendance: 89, averageScore: 5.5, parentName: 'Apoderado Tobar', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=52' },
+  { id: 's7-12', rut: '24.625.008-1', name: 'ALEXANDRO DANIEL VALENZUELA PAZ', grade: '7° Básico', attendance: 91, averageScore: 5.8, parentName: 'Apoderado Valenzuela', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=53' },
 
-  // 8° BÁSICO
+  // 8° BÁSICO (Página 7 y 9)
   { id: 's8-1', rut: '24.058.274-0', name: 'TRINIDAD IGNACIA ORTIZ MELLA', grade: '8° Básico', attendance: 96, averageScore: 6.5, parentName: 'Apoderado Ortiz', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=41' },
   { id: 's8-2', rut: '23.704.437-1', name: 'AGUSTINA TRINIDAD CUEVAS VARGAS', grade: '8° Básico', attendance: 89, averageScore: 5.2, parentName: 'Apoderado Cuevas', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=42' },
   { id: 's8-3', rut: '24.152.200-8', name: 'AGUSTÍN ANTONIO RÍOS FERNÁNDEZ', grade: '8° Básico', attendance: 94, averageScore: 6.1, parentName: 'Apoderado Ríos', parentEmail: '', parentPhone: '', isPIE: false, avatar: 'https://picsum.photos/100/100?random=43' },
@@ -85,27 +88,14 @@ export const INITIAL_CONVERSATIONS: Conversation[] = [
     messages: [
       { id: 'm2', senderId: 'parent', senderName: 'Roberto Núñez', content: '¿A qué hora es el taller de geometría de mañana?', timestamp: new Date(), isMine: false }
     ]
-  },
-  {
-    id: 'c3',
-    studentId: 's6-1',
-    parentName: 'CLAUDIA VERGARA',
-    lastMessage: 'Entendido profesor, reforzaremos en casa.',
-    unreadCount: 0,
-    messages: [
-      { id: 'm3', senderId: 'teacher', senderName: 'Prof. Yonathan Herrera', content: 'Claudia, Cristóbal debe repasar las potencias.', timestamp: new Date(Date.now() - 3600000), isMine: true }
-    ]
   }
 ];
 
 export const ANNOUNCEMENTS: Announcement[] = [
-  { id: 'a1', title: 'Nómina Oficial Cargada', content: 'Se ha completado la carga de alumnos para el ciclo 2024.', date: '2024-03-20', category: 'General' },
-  { id: 'a2', title: 'Control de Multiplicación', content: 'Evaluación rápida de tablas del 1 al 10.', date: '2024-03-25', category: 'Evaluación', grade: '5° Básico' },
-  { id: 'a3', title: 'Taller de Geometría', content: 'Inscripciones abiertas para reforzamiento de perímetros.', date: '2024-03-22', category: 'General', grade: '4° Básico' },
-  { id: 'a4', title: 'Prueba Ecuaciones', content: 'Preparar guía n°3 de lenguaje algebraico.', date: '2024-03-28', category: 'Evaluación', grade: '8° Básico' }
+  { id: 'a1', title: 'Nómina Oficial Cargada', content: 'Se ha completado la carga de alumnos para el ciclo 2026 basada en el registro PDF.', date: '2026-03-20', category: 'General' },
+  { id: 'a2', title: 'Control de Multiplicación', content: 'Evaluación rápida de tablas del 1 al 10.', date: '2026-03-25', category: 'Evaluación', grade: '5° Básico' }
 ];
 
 export const PLANNING_DATA: PlanningUnit[] = [
-  { id: 'u1', title: 'Unidad 1: Números y Operaciones', description: 'Consolidación de las bases matemáticas del nivel.', startDate: '2024-03-01', endDate: '2024-04-15', status: 'En Progreso', upcomingExamDate: '2024-04-05', resources: ['Guía Práctica 1'], grade: '5° Básico' },
-  { id: 'u2', title: 'Unidad 1: Álgebra Básica', description: 'Introducción a variables y expresiones.', startDate: '2024-03-01', endDate: '2024-04-10', status: 'En Progreso', upcomingExamDate: '2024-04-02', resources: ['PPT Introducción'], grade: '7° Básico' }
+  { id: 'u1', title: 'Unidad 1: Números y Operaciones', description: 'Consolidación de las bases matemáticas del nivel.', startDate: '2026-03-01', endDate: '2026-04-15', status: 'En Progreso', upcomingExamDate: '2026-04-05', resources: ['Guía Práctica 1'], grade: '5° Básico' }
 ];

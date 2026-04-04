@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, BrainCircuit, User, ArrowUpRight, Compass, RefreshCw, Sparkles, X, Volume2, Globe, Camera, ChevronDown, Check, Info, Lightbulb } from 'lucide-react';
+import { Send, Bot, BrainCircuit, User, ArrowUpRight, Compass, RefreshCw, Sparkles, X, Volume2, Globe, Camera, ChevronDown, Check, Info, Lightbulb, Star } from 'lucide-react';
 import { getAiTutorResponseStream, getSuggestedReplies, getAiTutorSpeech } from '../services/geminiService';
 import { AVAILABLE_MODELS, AIModelId } from '../types';
 
@@ -31,7 +30,8 @@ export const QueZadinChat: React.FC<{course?: string; isLocked?: boolean}> = ({ 
         id: '1', 
         role: 'bot', 
         text: `¡Hola! Soy QueZadin. Estoy listo para ayudarte con las matemáticas de **${activeCourse}**. ¿Qué desafío tenemos hoy?`,
-        timestamp: new Date()
+        timestamp: new Date(),
+        modelUsed: 'Gemini 3 Flash'
       }
     ]);
   }, [activeCourse]);
@@ -155,17 +155,20 @@ export const QueZadinChat: React.FC<{course?: string; isLocked?: boolean}> = ({ 
       <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 custom-scrollbar relative">
         {messages.map((msg) => {
           const isBot = msg.role === 'bot';
+          const isPro = msg.modelUsed?.toLowerCase().includes('pro');
+
           return (
             <div key={msg.id} className={`flex flex-col ${isBot ? 'items-start' : 'items-end'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
               <div className={`max-w-[85%] md:max-w-[70%] rounded-[32px] p-7 shadow-sm relative ${
                 isBot 
-                  ? 'bg-white text-slate-800 border border-slate-100 rounded-bl-none' 
+                  ? `bg-white text-slate-800 border border-slate-100 rounded-bl-none ${isPro ? 'bot-glow-pro' : 'bot-glow-flash'}` 
                   : 'bg-indigo-600 text-white rounded-br-none shadow-xl shadow-indigo-100'
               }`}>
                 {isBot && msg.modelUsed && (
-                  <div className={`absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border border-white/20 shadow-sm ${
-                    msg.modelUsed.includes('Pro') ? 'bg-amber-500 text-white' : 'bg-slate-800 text-indigo-300'
+                  <div className={`absolute -top-3 left-6 px-3 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest border border-white/20 shadow-sm flex items-center gap-1.5 ${
+                    isPro ? 'bg-amber-500 text-white' : 'bg-slate-800 text-indigo-300'
                   }`}>
+                    {isPro && <Star size={8} fill="currentColor" className="text-white" />}
                     {msg.modelUsed}
                   </div>
                 )}
